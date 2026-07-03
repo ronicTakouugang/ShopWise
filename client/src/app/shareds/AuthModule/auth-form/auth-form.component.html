@@ -1,0 +1,11 @@
+<p-dialog [visible]="isVisible">
+  <ng-template pTemplate="headless">
+    @if(hadAccount){
+      <app-sign-in (closeEvent)="close($event)" (changeFormEvent)="change($event)"></app-sign-in>
+
+    }
+    @else{
+      <app-sign-on (closeEvent)="close($event)" (changeFormEvent)="change($event)"></app-sign-on>
+    }
+  </ng-template>
+</p-dialog>

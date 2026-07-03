@@ -1,0 +1,23 @@
+p-iconfield{
+  width: 100%;
+  height: 50px;
+  margin-left: 60px;
+}
+input{
+  width: 100%;
+  height: 100%;
+}
+.wrapper{
+  //background: coral ;
+  align-items: center;
+  justify-content: center;
+  width: 50vw;
+}
+:host ::ng-deep{
+  .p-button{
+    height: 50px;
+    width: 50px;
+    margin-left: 10px;
+  }
+}
+

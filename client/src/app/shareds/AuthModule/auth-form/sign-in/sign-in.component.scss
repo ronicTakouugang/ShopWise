@@ -1,0 +1,54 @@
+:host ::ng-deep{
+  .p-password{
+    width: 100%;
+  }
+  .pass{
+    width: 100%;
+  }
+}
+.field--content{
+  display: flex;
+  row-gap: 10px;
+  flex-direction: column;
+}
+.compte{
+  display: flex;
+  align-items: center;
+}
+svg {
+  font-family: "Roboto Mono", sans-serif;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(2px);
+}
+svg text {
+  animation: stroke 5s ease-in-out alternate;
+  stroke-width: 2;
+  stroke: #365FA0;
+  font-size: 52px;
+  fill: rgba(255,255,255,1); stroke: rgba(255,255,255,0);
+}
+@keyframes stroke {
+  0%   {
+    fill: rgba(250,255,240,0); stroke: rgba(255,255,255,1);
+    stroke-dashoffset: 25%; stroke-dasharray: 0 50%; stroke-width: 2;
+  }
+  70%  {fill: rgba(250,255,240,0); stroke: rgba(255,255,255,1); }
+  80%  {fill: rgba(250,255,240,0); stroke: rgba(255,255,255,1); stroke-width: 3; }
+  100% {
+    fill: rgba(250,255,240,1); stroke: rgba(255,255,255,0);
+    stroke-dashoffset: -25%; stroke-dasharray: 50% 0; stroke-width: 0;
+  }
+}
+.wrapper-div {
+  background-color: #FFFFFF;
+  border-top: 4px solid var(--p-blue-600);
+  border-radius: 5px;
+};
+.pass{
+  display: flex !important;
+  align-items: center !important;
+}
+.p-icon-wrapper{
+  top:auto !important;
+}
