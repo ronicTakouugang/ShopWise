@@ -18,16 +18,16 @@
         <p-inputGroupAddon>
           <i class="pi pi-user"></i>
         </p-inputGroupAddon>
-        <input pInputText placeholder="Email" [(ngModel)]="email"/>
+        <input pInputText placeholder="E-mail" [(ngModel)]="email"/>
       </p-inputGroup>
       <p-inputGroup>
         <p-inputGroupAddon>
           <i class="pi pi-key"></i>
         </p-inputGroupAddon>
-        <p-password class="pass" [(ngModel)]="password" [toggleMask]="true" [style]="{width:'100%'}"></p-password>
+        <p-password class="pass" [(ngModel)]="password" placeholder="Mot de passe" [toggleMask]="true" [style]="{width:'100%'}"></p-password>
       </p-inputGroup>
 
-      <span class="compte">Pas de compte ? <p-button label="cree un compte" [link]="true" (click)="changeFormModal()"></p-button></span>
+      <span class="compte">Pas de compte ? <p-button label="créer un compte" [link]="true" (click)="changeFormModal()"></p-button></span>
     </div>
     <ng-template pTemplate="footer">
       <p-button label="Confirmer" icon="pi pi-check" (click)="auth()" [loading]="loading" [disabled]="!email || !password"></p-button>

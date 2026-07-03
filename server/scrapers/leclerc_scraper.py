@@ -68,18 +68,18 @@ def fetch_search_page(search_term, page=1, size=32, impersonate="chrome120", tim
                 try:
                     return response.json()
                 except Exception as e:
-                    logger.error(f"❌ Réponse non-JSON pour '{search_term}' page {page}: {e}")
+                    logger.error(f"Reponse non-JSON pour '{search_term}' page {page}: {e}")
                     last_status = "invalid_json"
                     continue
 
             last_status = response.status_code
-            logger.warning(f"⚠️ Statut {response.status_code} pour '{search_term}' page {page}, tentative {attempt+1}/{max_retries}")
+            logger.warning(f"Statut {response.status_code} pour '{search_term}' page {page}, tentative {attempt+1}/{max_retries}")
 
         except Exception as e:
             last_status = str(e)
-            logger.error(f"❌ Exception API pour '{search_term}' page {page} : {e}")
+            logger.error(f"Exception API pour '{search_term}' page {page} : {e}")
 
-    logger.error(f"❌ Échec définitif API pour '{search_term}' page {page} (dernier statut: {last_status})")
+    logger.error(f"Echec definitif API pour '{search_term}' page {page} (dernier statut: {last_status})")
     return None
 
 

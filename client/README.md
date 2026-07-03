@@ -1,59 +1,32 @@
-# ShopWise
+# ShopWise - Client
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.6.
+Ce projet est la partie interface utilisateur de ShopWise, une application de comparaison de prix multi-plateforme.
 
-## Development server
+## Serveur de développement
 
-To start a local development server, run:
-
-```bash
-ng serve
-```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Pour démarrer un serveur de développement local, exécutez :
 
 ```bash
-ng generate component component-name
+npm install
+npm start
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Une fois le serveur lancé, ouvrez votre navigateur et accédez à `http://localhost:4200/`. L'application se rechargera automatiquement si vous modifiez l'un des fichiers sources.
+
+## Construction
+
+Pour compiler le projet, exécutez :
 
 ```bash
-ng generate --help
+npm run build
 ```
 
-## Building
+Cela compilera votre projet et stockera les fichiers de sortie dans le répertoire `dist/`. Par défaut, la compilation de production optimise votre application pour la performance.
 
-To build the project run:
+## Tests unitaires
+
+Pour exécuter les tests unitaires, utilisez la commande suivante :
 
 ```bash
-ng build
+npm test
 ```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

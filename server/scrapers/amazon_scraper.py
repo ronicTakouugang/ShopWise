@@ -152,7 +152,7 @@ def scrape_records(item):
         else:
             hidden_fees_euro = "N/A"
 
-        logger.info(f"✔ Produit extrait : {description} - {price} -> {price_euro} | Frais cachés : {hidden_fees_euro}")
+        logger.info(f"Produit extrait : {description} - {price} -> {price_euro} | Frais caches : {hidden_fees_euro}")
         return {
             "description": description,
             "price": price_euro,
@@ -166,7 +166,7 @@ def scrape_records(item):
         }
     
     except Exception as e:
-        logger.error(f"❌ Erreur lors de l'extraction d'un produit : {e}")
+        logger.error(f"Erreur lors de l'extraction d'un produit : {e}")
         return None
 
 def fetch_page(search_term, page):
@@ -184,12 +184,12 @@ def fetch_page(search_term, page):
 
 def scrape_amazon(search_term):
     """
-    Scrape les résultats Amazon pour le terme de recherche donné.
+    Scrape les resultats Amazon pour le terme de recherche donne.
     """
-    logger.info(f"🔍 Démarrage du scraping pour : {search_term}")
+    logger.info(f"Demarrage du scraping pour : {search_term}")
     
     records = []
-    pages_to_fetch = list(range(1, 3))  # Limité à 2 pages pour plus de rapidité et discrétion
+    pages_to_fetch = list(range(1, 3))  # Limite a 2 pages pour plus de rapidite et discretion
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_to_page = {
@@ -199,12 +199,12 @@ def scrape_amazon(search_term):
         for future in as_completed(future_to_page):
             page, soup = future.result()
             if not soup:
-                logger.warning(f"⚠ Aucune donnée récupérée pour la page {page}.")
+                logger.warning(f"Aucune donnee recuperee pour la page {page}.")
                 continue
-            logger.info(f"📄 Scraping de la page {page}...")
+            logger.info(f"Scraping de la page {page}...")
             results = soup.find_all("div", {"data-component-type": "s-search-result"})
             if not results:
-                logger.warning(f"⚠ Aucune donnée trouvée sur la page {page}.")
+                logger.warning(f"Aucune donnee trouvee sur la page {page}.")
                 continue
             for item in results:
                 record = scrape_records(item)

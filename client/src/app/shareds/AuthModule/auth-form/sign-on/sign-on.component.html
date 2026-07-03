@@ -26,13 +26,13 @@
             <p-inputGroupAddon>
               <i class="pi pi-user"></i>
             </p-inputGroupAddon>
-            <input pInputText placeholder="Email" [(ngModel)]="email"/>
+            <input pInputText placeholder="E-mail" [(ngModel)]="email"/>
           </p-inputGroup>
           <p-inputGroup>
             <p-inputGroupAddon>
               <i class="pi pi-key"></i>
             </p-inputGroupAddon>
-            <p-password label="Password" [(ngModel)]="password" [toggleMask]="true" [style]="{width:'-webkit-fill-available'}"></p-password>
+            <p-password label="Mot de passe" [(ngModel)]="password" [toggleMask]="true" [style]="{width:'-webkit-fill-available'}"></p-password>
           </p-inputGroup>
 
         </div>
@@ -42,19 +42,19 @@
             <p-inputGroupAddon>
               <i class="pi pi-user"></i>
             </p-inputGroupAddon>
-            <input pInputText placeholder="Prenom" />
+            <input pInputText placeholder="Prénom" />
           </p-inputGroup>
 
           <p-inputGroup>
             <p-inputGroupAddon>
               <i class="pi pi-key"></i>
             </p-inputGroupAddon>
-            <p-password label="Repead Password" [toggleMask]="true" [style]="{width:'-webkit-fill-available'}"></p-password>
+            <p-password label="Confirmer le mot de passe" [toggleMask]="true" [style]="{width:'-webkit-fill-available'}"></p-password>
           </p-inputGroup>
         </div>
       </div>
 
-      <span class="compte">Vous avez deja un compte ? <p-button label="connexion" [link]="true" (click)="changeFormModal()"></p-button></span>
+      <span class="compte">Vous avez déjà un compte ? <p-button label="connexion" [link]="true" (click)="changeFormModal()"></p-button></span>
     </div>
     <ng-template pTemplate="footer">
       <p-button label="Confirmer" icon="pi pi-check" (click)="signOn()" [loading]="loading" [disabled]="!email || !password"></p-button>
