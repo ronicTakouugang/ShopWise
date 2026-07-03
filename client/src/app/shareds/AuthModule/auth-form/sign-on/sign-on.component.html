@@ -1,0 +1,64 @@
+<div class="card flex justify-content-center">
+  <p-card header="Inscription" subheader="Entrez vos informations" [style]="{ width: '500px' }">
+    <ng-template pTemplate="header">
+      <div class="wrapper">
+        <svg>
+          <text x="50%" y="50%" dy=".35em" text-anchor="middle">
+            ShopWise
+          </text>
+        </svg>
+      </div>
+    </ng-template>
+
+    <div class="flex flex-column md field--content">
+      @if (errorMessage) {
+        <div class="p-error mb-2">{{ errorMessage }}</div>
+      }
+      <div class="grid">
+        <div class="grid--tile">
+          <p-inputGroup>
+            <p-inputGroupAddon>
+              <i class="pi pi-user"></i>
+            </p-inputGroupAddon>
+            <input pInputText placeholder="Nom" />
+          </p-inputGroup>
+          <p-inputGroup>
+            <p-inputGroupAddon>
+              <i class="pi pi-user"></i>
+            </p-inputGroupAddon>
+            <input pInputText placeholder="Email" [(ngModel)]="email"/>
+          </p-inputGroup>
+          <p-inputGroup>
+            <p-inputGroupAddon>
+              <i class="pi pi-key"></i>
+            </p-inputGroupAddon>
+            <p-password label="Password" [(ngModel)]="password" [toggleMask]="true" [style]="{width:'-webkit-fill-available'}"></p-password>
+          </p-inputGroup>
+
+        </div>
+        <div class="grid--tile">
+
+          <p-inputGroup>
+            <p-inputGroupAddon>
+              <i class="pi pi-user"></i>
+            </p-inputGroupAddon>
+            <input pInputText placeholder="Prenom" />
+          </p-inputGroup>
+
+          <p-inputGroup>
+            <p-inputGroupAddon>
+              <i class="pi pi-key"></i>
+            </p-inputGroupAddon>
+            <p-password label="Repead Password" [toggleMask]="true" [style]="{width:'-webkit-fill-available'}"></p-password>
+          </p-inputGroup>
+        </div>
+      </div>
+
+      <span class="compte">Vous avez deja un compte ? <p-button label="connexion" [link]="true" (click)="changeFormModal()"></p-button></span>
+    </div>
+    <ng-template pTemplate="footer">
+      <p-button label="Confirmer" icon="pi pi-check" (click)="signOn()" [loading]="loading" [disabled]="!email || !password"></p-button>
+      <p-button label="Annuler" (click)="closeModal()" icon="pi pi-times" [outlined]="true" styleClass="p-button-secondary" [style]="{ 'margin-left': '.5em' }"></p-button>
+    </ng-template>
+  </p-card>
+</div>

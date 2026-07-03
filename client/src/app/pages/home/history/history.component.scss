@@ -1,0 +1,21 @@
+:host ::ng-deep{
+  .p-menu{
+    height: 100%;
+    display: flex;
+    border-radius: 0;
+  }
+  .histor{
+    width: 220px !important;
+  }
+  .histor--elem{
+    width: 220px !important;
+    max-height: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .p-panel{
+    width: 220px;
+  }
+}
+

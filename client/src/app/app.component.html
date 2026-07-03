@@ -1,0 +1,7 @@
+<app-nav-cmp (inFormEvent)="openSignInForm($event)" (onFormEvent)="openSignOnForm($event)"></app-nav-cmp>
+<p-toast/>
+<div class="{{openForm?'overlay':'no-display'}}">
+  <app-auth-form [authForm]="openForm" (closeEvent)="closeModal($event)"
+                 (changeFormEvent)="changeForm($event)" [hadAcc]="hadAccount"></app-auth-form>
+</div>
+<router-outlet/>

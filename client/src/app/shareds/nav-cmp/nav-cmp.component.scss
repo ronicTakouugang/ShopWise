@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Knewave&display=swap');
+
+.Title{
+  font-family: "Knewave", serif;
+  font-style: normal;
+  margin: 0 10px;
+  //color: var(--p-violet-400);
+  color: var(--p-primary-color);
+}
+#shop{
+  font-family: "Engagement", serif;
+  font-weight: 400;
+  font-style: normal;
+  color: #262626;
+  margin: 0 2px;
+}
+:host ::ng-deep{
+  .auth--btn{
+    font-weight: 800 !important;
+    margin-right: 7px;
+  }
+}
+.logout--btn{
+  margin-left: 10px;
+}
