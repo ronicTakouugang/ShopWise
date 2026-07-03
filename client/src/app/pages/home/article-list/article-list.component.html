@@ -1,0 +1,30 @@
+<div class="filters" *ngIf="allArticles.length > 0">
+  <div class="filter-group">
+    <label for="sortBy">Trier par :</label>
+    <select id="sortBy" [(ngModel)]="sortBy" (change)="applyFiltersAndSort()">
+      <option value="relevance">Pertinence</option>
+      <option value="price_asc">Prix croissant</option>
+      <option value="price_desc">Prix décroissant</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label for="filterSource">Site web :</label>
+    <select id="filterSource" [(ngModel)]="filterSource" (change)="applyFiltersAndSort()">
+      <option value="all">Tous les sites</option>
+      <option *ngFor="let src of sources" [value]="src">{{src}}</option>
+    </select>
+  </div>
+</div>
+
+<div class="article--list">
+  @for (article of paginatedArticles; track article.productURL){
+    <app-article [article]="article"/>
+  }
+</div>
+
+<div class="pagination" *ngIf="totalPages > 1">
+  <button (click)="prevPage()" [disabled]="currentPage === 1">Précédent</button>
+  <span>Page {{currentPage}} sur {{totalPages}}</span>
+  <button (click)="nextPage()" [disabled]="currentPage === totalPages">Suivant</button>
+</div>
