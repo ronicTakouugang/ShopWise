@@ -1,0 +1,12 @@
+::ng-deep {
+  .p-dialog .p-dialog-content {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+  }
+  .p-dialog {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

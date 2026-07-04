@@ -161,7 +161,7 @@ def scrape_records(item):
             "productURL": product_url,
             "imageURL": image_url,
             "hiddenFees": hidden_fees_euro,
-            "sourceLogo": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/1024px-Amazon_logo.svg.png",
+            "sourceLogo": "https://www.amazon.fr/favicon.ico",
             "source": "Amazon"
         }
     

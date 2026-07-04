@@ -1,49 +1,48 @@
 import {Component, CUSTOM_ELEMENTS_SCHEMA} from '@angular/core';
-import {InputIcon} from 'primeng/inputicon';
-import {IconField} from 'primeng/iconfield';
+import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
-import {InputText} from 'primeng/inputtext';
-import {Button} from 'primeng/button';
 import {ArticleService} from '../article-list/service/article.service';
 import {tap} from 'rxjs';
 import {HistoryService} from '../history/services/history.service';
 
 @Component({
   selector: 'app-search',
-  imports: [
-    InputIcon,
-    IconField,
-    FormsModule,
-    InputText,
-    Button
-  ],
-  templateUrl: './search.component.html',
   standalone: true,
-  styleUrl: './search.component.scss',
+  imports: [CommonModule, FormsModule],
+  templateUrl: './search.component.html',
+  styleUrls: ['./search.component.scss'],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class SearchComponent {
-  product:string="";
-  disable=false;
-  constructor(private articleService: ArticleService,private historyService: HistoryService) {
+  product: string = '';
+  disable: boolean = false;
+
+  constructor(private articleService: ArticleService, private historyService: HistoryService) {}
+
+  clearQuery(): void {
+    this.product = '';
   }
-  find(){
-    console.log("find",this.product);
+
+  find(term?: string): void {
+    if (term) {
+      this.product = term;
+    }
+    if (!this.product.trim() || this.disable) return;
+
+    console.log("Recherche de :", this.product);
     this.articleService.findProduct(this.product)
       .pipe(
-        tap(
-          {
-            subscribe: () => this.disable=true, // Action au début
-            next: () => {
-              console.log("Données reçues");
-              this.historyService.add(this.product); // Ajoute la recherche dans l'historique'
-            },// Optionnel, si tu veux suivre les valeurs
-            finalize: () => this.disable=false, // Action à la fin
-          }
-        )
+        tap({
+          subscribe: () => this.disable = true,
+          next: () => {
+            console.log("Données reçues");
+            this.historyService.add(this.product);
+          },
+          finalize: () => this.disable = false,
+        })
       )
       .subscribe(
-      data => this.articleService.next()
-    );
+        data => this.articleService.next()
+      );
   }
 }

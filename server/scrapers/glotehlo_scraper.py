@@ -71,7 +71,7 @@ def scrape_glotelho(search_term, max_pages=3):
                         "popularity": popularity,
                         "productURL": product_url,
                         "imageURL": image_url,
-                        "sourceLogo": "https://glotelho.cm/images/glotelho-ecommerce.jpg",
+                        "sourceLogo": "https://glotelho.cm/media/favicon/default/favicon-glotelho.png",
                         "source": "Glotehlo",
                     })
             except Exception as e:

@@ -1,8 +1,26 @@
-<div class="wrapper">
-  <p-iconfield>
-    <p-inputicon class="pi pi-search"/>
-    <input type="text" [disabled]="disable" (keyup.enter)="find()" [(ngModel)]="product" pInputText placeholder="Rechercher" />
-  </p-iconfield>
-  <p-button id="search--btn" icon="pi pi-search" aria-label="Rechercher" [disabled]="disable" (click)="find()"/>
+<div class="search-bar" [class.disabled]="disable">
+  <input
+    type="text"
+    class="search-input"
+    [(ngModel)]="product"
+    placeholder="Rechercher des produits..."
+    (keyup.enter)="find()"
+    [disabled]="disable"
+  />
+
+  <span
+    class="clear-icon"
+    *ngIf="product"
+    (click)="clearQuery()"
+  >
+    &times;
+  </span>
+
+  <button class="search-btn" (click)="find()" [disabled]="disable">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="11" cy="11" r="7" stroke="white" stroke-width="2.5"/>
+      <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+  </button>
 </div>
 

@@ -3,14 +3,31 @@
     <app-history></app-history>
   </div>
   <div class="main-content">
-    <div class="wrapper text--wrapper">
-      <h1>Rechercher</h1>
-      <h5>Trouver les meilleurs offres parmi des millier d'articles</h5>
-    </div>
-    <div class="wrapper search--wrapper">
-      <app-search></app-search>
-      <app-loader></app-loader>
-    </div>
+
+    <section class="hero-section">
+      <div class="hero-content">
+        <h1 class="main-title">Rechercher</h1>
+        <p class="subtitle">Trouvez les meilleures offres parmi des milliers d'articles</p>
+
+        <div class="search-wrapper">
+          <app-search #searchCmp></app-search>
+          <app-loader></app-loader>
+        </div>
+
+        <div class="popular-tags">
+          <span class="tag-label">Suggestions :</span>
+          <button class="tag" (click)="searchCmp.find('Casque')">Casque</button>
+          <button class="tag" (click)="searchCmp.find('Trottinette')">Trottinette</button>
+          <button class="tag" (click)="searchCmp.find('Chargeur')">Chargeur</button>
+        </div>
+      </div>
+
+      <div class="hero-image-container">
+        <div class="robot-glow"></div>
+        <img src="img/hero.png" alt="Robot ShopWise" class="floating-robot">
+      </div>
+    </section>
+
     <div class="wrapper list--wrapper">
       <app-article-list></app-article-list>
     </div>

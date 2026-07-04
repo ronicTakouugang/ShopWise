@@ -1,65 +1,136 @@
-:host ::ng-deep{
-  .p-card{
-    width: 250px;
-    border-radius: 4px;
-    margin: 10px;
-    display: flex;
-    transition: all 0.4s;
+.card--container {
+  width: 280px;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: 1px solid #f3f4f6;
+  margin: 15px;
+  position: relative;
 
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+    border-color: #4632e2;
+
+    .product-image {
+      transform: scale(1.05);
+    }
   }
-  .p-card-header{
-    overflow: hidden;
+
+  .card-image-section {
+    height: 220px;
+    background-color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 230px;
-    width: 250px;
-  }
-  .head{
-    width: 100%;
-    height: 100%;
-    background: var(--p-violet-100);
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-  }
-  .img--wrapper{
-    border-radius: 4px 4px 0 0;
-    max-width: 250px;
-    max-height: 200px;
-    mix-blend-mode: multiply;
-  }
-  .logo--wrapper{
-    max-width: 100px;
-    max-height: 20px;
-  }
-}
-.title{
-  display: inline-block;
-  height: 30px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 210px;
-}
-.price{
-  color: var(--p-yellow-500);
-}
-.img--contenair{
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-}
-.logo--container{
-  display: flex;
-  align-content: center;
-  justify-content: flex-start;
-  background: blue;
-  width: 100px;
-  height: 40px;
-}
+    position: relative;
+    padding: 20px;
+    overflow: hidden;
 
-.card--wrapper{
-  //background: coral;
+    .image-wrapper {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .product-image {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+      }
+    }
+
+    .promo-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: #ef4444;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .card-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .vendor-info {
+      display: flex;
+      align-items: center;
+      height: 24px;
+
+      .vendor-logo {
+        max-height: 100%;
+        max-width: 100px;
+        object-fit: contain;
+        filter: grayscale(0.2);
+      }
+
+      .vendor-name {
+        font-size: 0.8rem;
+        color: #6b7280;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+    }
+
+    .product-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1f2937;
+      margin: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.4;
+      height: 2.8em; // Force 2 lines height for consistency
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+
+      .price-value {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #4632e2;
+      }
+
+      .rating {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: #fffbeb;
+        padding: 2px 8px;
+        border-radius: 6px;
+
+        .stars {
+          color: #f59e0b;
+          font-size: 0.8rem;
+        }
+
+        .rating-value {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #92400e;
+        }
+      }
+    }
+  }
 }

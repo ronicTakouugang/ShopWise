@@ -1,19 +1,21 @@
-<div class="filters" *ngIf="allArticles.length > 0">
-  <div class="filter-group">
-    <label for="sortBy">Trier par :</label>
-    <select id="sortBy" [(ngModel)]="sortBy" (change)="applyFiltersAndSort()">
-      <option value="relevance">Pertinence</option>
-      <option value="price_asc">Prix croissant</option>
-      <option value="price_desc">Prix décroissant</option>
-    </select>
-  </div>
+<div class="filter-section" *ngIf="allArticles.length > 0">
+  <div class="filters-container">
+    <div class="filter-group">
+      <i class="pi pi-sort-alt"></i>
+      <select id="sortBy" [(ngModel)]="sortBy" (change)="applyFiltersAndSort()" class="custom-select">
+        <option value="relevance">Trier par : Pertinence</option>
+        <option value="price_asc">Trier par : Prix croissant</option>
+        <option value="price_desc">Trier par : Prix décroissant</option>
+      </select>
+    </div>
 
-  <div class="filter-group">
-    <label for="filterSource">Site web :</label>
-    <select id="filterSource" [(ngModel)]="filterSource" (change)="applyFiltersAndSort()">
-      <option value="all">Tous les sites</option>
-      <option *ngFor="let src of sources" [value]="src">{{src}}</option>
-    </select>
+    <div class="filter-group">
+      <i class="pi pi-globe"></i>
+      <select id="filterSource" [(ngModel)]="filterSource" (change)="applyFiltersAndSort()" class="custom-select">
+        <option value="all">Tous les sites</option>
+        <option *ngFor="let src of sources" [value]="src">{{src}}</option>
+      </select>
+    </div>
   </div>
 </div>
 

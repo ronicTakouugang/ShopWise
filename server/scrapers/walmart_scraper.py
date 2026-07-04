@@ -103,7 +103,7 @@ def scrape_walmart_record(item):
             "imageURL": image_url,
             "hiddenFees": hidden_fees,
             "source": "Walmart",
-            "sourceLogo": "https://1000logos.net/wp-content/uploads/2017/05/Walmart-Logo.png"
+            "sourceLogo": "https://www.walmart.com/favicon.ico"
         }
     
     except Exception as e:

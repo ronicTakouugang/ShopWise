@@ -1,12 +1,11 @@
 import {Component, CUSTOM_ELEMENTS_SCHEMA, Input} from '@angular/core';
 import {Article} from '../service/article';
-import {Card} from 'primeng/card';
-import {Button} from 'primeng/button';
+import {CommonModule} from '@angular/common';
 
 @Component({
   selector: 'app-article',
   imports: [
-    Card
+    CommonModule
   ],
   templateUrl: './article.component.html',
   standalone: true,

@@ -1,37 +1,34 @@
-<div class="card flex justify-content-center">
-  <p-card header="Connexion" subheader="Entrez votre identifiant et mot de passe" [style]="{ width: '360px' }">
-    <ng-template pTemplate="header">
-      <div class="wrapper-div">
-        <svg>
-          <text x="50%" y="50%" dy=".35em" text-anchor="middle">
-            ShopWise
-          </text>
-        </svg>
-      </div>
-    </ng-template>
+<div class="auth-card">
+  <div class="auth-header">
+    <div class="auth-logo">ShopWise</div>
+    <button class="close-btn" (click)="closeModal()">
+      <i class="pi pi-times"></i>
+    </button>
+  </div>
 
-    <div class="flex flex-column md field--content">
+  <div class="auth-body">
+    <h2 class="auth-title">Connexion</h2>
+    <p class="auth-subtitle">Connectez-vous pour retrouver vos favoris</p>
+
+    <div class="field--content">
       @if (errorMessage) {
         <div class="p-error mb-2">{{ errorMessage }}</div>
       }
-      <p-inputGroup>
-        <p-inputGroupAddon>
-          <i class="pi pi-user"></i>
-        </p-inputGroupAddon>
-        <input pInputText placeholder="E-mail" [(ngModel)]="email"/>
-      </p-inputGroup>
-      <p-inputGroup>
-        <p-inputGroupAddon>
-          <i class="pi pi-key"></i>
-        </p-inputGroupAddon>
-        <p-password class="pass" [(ngModel)]="password" placeholder="Mot de passe" [toggleMask]="true" [style]="{width:'100%'}"></p-password>
-      </p-inputGroup>
+      <div class="input-wrapper">
+        <i class="pi pi-user input-icon"></i>
+        <input pInputText placeholder="E-mail" [(ngModel)]="email" class="auth-input"/>
+      </div>
 
-      <span class="compte">Pas de compte ? <p-button label="créer un compte" [link]="true" (click)="changeFormModal()"></p-button></span>
+      <div class="input-wrapper">
+        <i class="pi pi-key input-icon"></i>
+        <p-password class="auth-password" [(ngModel)]="password" placeholder="Mot de passe" [toggleMask]="true" [feedback]="false"></p-password>
+      </div>
+
+      <p-button label="Confirmer" [loading]="loading" [disabled]="!email || !password" (click)="auth()" styleClass="auth-submit-btn"></p-button>
+
+      <div class="auth-footer">
+        <span class="compte">Pas de compte ? <a (click)="changeFormModal()" class="auth-link">Créer un compte</a></span>
+      </div>
     </div>
-    <ng-template pTemplate="footer">
-      <p-button label="Confirmer" icon="pi pi-check" (click)="auth()" [loading]="loading" [disabled]="!email || !password"></p-button>
-      <p-button label="Annuler" (click)="closeModal()" icon="pi pi-times" [outlined]="true" styleClass="p-button-secondary" [style]="{ 'margin-left': '.5em' }"></p-button>
-    </ng-template>
-  </p-card>
+  </div>
 </div>

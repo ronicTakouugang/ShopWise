@@ -145,7 +145,7 @@ def parse_item(item):
             "productURL": product_url,
             "imageURL": image_url or "N/A",
             "seller": seller,
-            "sourceLogo": "https://www.e.leclerc/favicon.ico",
+            "sourceLogo": "https://www.leclerc.fr/favicon.ico",
             "source": "E.Leclerc",
             "popularity": 0,
             "key": sku or product_url,
