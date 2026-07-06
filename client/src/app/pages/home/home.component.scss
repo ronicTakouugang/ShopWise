@@ -166,7 +166,8 @@ app-article-list {
   position: sticky;
   top: 0;
   display: flex;
-  background: #FFFFFF;
-  border-right: 1px solid #d5d5d5;
+  background: #fdfdfd;
+  border-right: 1px solid #e5e7eb;
   z-index: 10;
+  box-shadow: 4px 0 10px rgba(0,0,0,0.02);
 }

@@ -36,6 +36,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
+  margin-right: 1rem;
 }
 
 .user-info {
@@ -92,22 +93,25 @@
     box-shadow: 0 2px 5px rgba(70, 50, 226, 0.3);
   }
 
-  .p-menu {
+  .p-menu.user-popup-menu {
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     border: 1px solid #e9ecef;
-    padding: 6px;
+    padding: 8px;
+    margin-top: 10px;
 
     .p-menu-list {
       .p-menuitem {
-        margin: 2px 0;
+        margin: 4px 0;
 
         .p-menuitem-link {
           border-radius: 8px;
-          padding: 10px 12px;
+          padding: 12px 16px;
+          transition: all 0.2s ease;
 
           .p-menuitem-icon {
             color: #4632e2;
+            margin-right: 12px;
           }
 
           .p-menuitem-text {
@@ -116,16 +120,26 @@
           }
 
           &:hover {
-            background-color: #f8f7ff;
+            background-color: #f8f9fa;
             .p-menuitem-text {
-              color: #4632e2;
+              color: #212529;
             }
           }
         }
 
         &.p-menuitem-separator {
           border-top: 1px solid #f1f3f5;
-          margin: 6px 0;
+          margin: 8px 0;
+        }
+
+        // Style spécifique pour la déconnexion (le dernier item après le séparateur)
+        &:last-child {
+          .p-menuitem-link:hover {
+            background-color: #fff5f5;
+            .p-menuitem-text, .p-menuitem-icon {
+              color: #dc3545;
+            }
+          }
         }
       }
     }

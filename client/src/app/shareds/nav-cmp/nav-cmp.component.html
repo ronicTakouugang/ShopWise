@@ -18,7 +18,7 @@
         <div class="user-info" (click)="menu.toggle($event)">
           <div class="text-info">
             <span class="welcome-text">Bienvenue,</span>
-            <span class="user-name">{{authSer.username.split('@')[0]}}</span>
+            <span class="user-name">{{authSer.username.split('@')[0].split('.')[0]}}</span>
           </div>
           <p-avatar
             [label]="authSer.username.charAt(0).toUpperCase()"
@@ -28,7 +28,7 @@
           </p-avatar>
           <i class="pi pi-chevron-down ml-2 chevron-icon"></i>
         </div>
-        <p-menu #menu [model]="userMenuItems" [popup]="true" appendTo="body"></p-menu>
+        <p-menu #menu [model]="userMenuItems" [popup]="true" appendTo="body" styleClass="user-popup-menu"></p-menu>
       </div>
     }
   </ng-template>

@@ -1,12 +1,19 @@
 <div class="history">
   @if (authService.isAuth){
     <p-panel header="Historique" class="histor">
-      @for (histor of historyService.history; track history){
-        <p class="m-0 histor--elem">
-          <p-checkbox [(ngModel)]="histor.notifications" [binary]="true" (ngModelChange)="save(histor)"/>
-          {{histor.search}}
-        </p>
-      }
+      <div class="history-list">
+        @for (histor of historyService.history; track histor.search){
+          <div class="histor--elem">
+            <p-checkbox [(ngModel)]="histor.notifications" [binary]="true" (ngModelChange)="save(histor)"/>
+            <span class="search-text">{{histor.search}}</span>
+          </div>
+        } @empty {
+          <div class="empty-history">
+            <i class="pi pi-history"></i>
+            <p>Aucune recherche récente</p>
+          </div>
+        }
+      </div>
     </p-panel>
   }
 </div>
