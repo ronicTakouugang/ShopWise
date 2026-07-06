@@ -10,10 +10,12 @@ import { ButtonModule } from 'primeng/button';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 
+import { RouterLink } from '@angular/router';
+
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, InputTextModule, CheckboxModule, ButtonModule, ToastModule],
+  imports: [CommonModule, FormsModule, InputTextModule, CheckboxModule, ButtonModule, ToastModule, RouterLink],
   providers: [MessageService],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.scss'

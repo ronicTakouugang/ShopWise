@@ -4,11 +4,12 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Article } from '../home/article-list/service/article';
 import { ArticleComponent } from '../home/article-list/article/article.component';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-favorites',
   standalone: true,
-  imports: [CommonModule, ArticleComponent],
+  imports: [CommonModule, ArticleComponent, RouterLink],
   templateUrl: './favorites.component.html',
   styleUrl: './favorites.component.scss'
 })
@@ -28,7 +29,7 @@ export class FavoritesComponent implements OnInit {
     this.http.get<Article[]>(`${this.apiUrl}/favorites`, { withCredentials: true })
       .subscribe({
         next: (data) => {
-          this.favorites = data;
+          this.favorites = data.map(item => ({...item, isFavorite: true}));
           this.loading = false;
         },
         error: (err) => {

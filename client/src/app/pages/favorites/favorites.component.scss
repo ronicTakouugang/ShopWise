@@ -6,6 +6,29 @@
 
   .header {
     margin-bottom: 2rem;
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: none;
+      border: none;
+      color: #4632e2;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 1rem;
+      transition: transform 0.2s ease;
+
+      &:hover {
+        transform: translateX(-4px);
+      }
+
+      i {
+        font-size: 0.9rem;
+      }
+    }
+
     h1 {
       font-size: 2rem;
       font-weight: 800;
