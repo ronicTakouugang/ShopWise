@@ -6,6 +6,7 @@ import {Avatar} from 'primeng/avatar';
 import {Menu} from 'primeng/menu';
 import {MenuItem} from 'primeng/api';
 import {CommonModule} from '@angular/common';
+import {Router} from '@angular/router';
 
 @Component({
   selector: 'app-nav-cmp',
@@ -27,10 +28,16 @@ export class NavCmpComponent {
     {
       label: 'Mon Profil',
       icon: 'pi pi-user',
+      command: () => {
+        this.router.navigate(['/profile']);
+      }
     },
     {
       label: 'Mes Favoris',
       icon: 'pi pi-heart',
+      command: () => {
+        this.router.navigate(['/favorites']);
+      }
     },
     {
       separator: true
@@ -44,7 +51,7 @@ export class NavCmpComponent {
     }
   ];
 
-  constructor(public authSer:AuthService) {
+  constructor(public authSer:AuthService, private router: Router) {
   }
 
   @Output()

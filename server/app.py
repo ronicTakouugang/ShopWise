@@ -58,7 +58,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Initialisation de la BDD pour les abonnements
 #########################
 def init_db() -> None:
-    """Initialise la base de données SQLite pour les abonnements."""
+    """Initialise la base de données SQLite pour les abonnements, favoris et profil."""
     try:
         with sqlite3.connect("subscriptions.db") as conn:
             cursor = conn.cursor()
@@ -68,6 +68,28 @@ def init_db() -> None:
                     product_url TEXT,
                     initial_price REAL,
                     email TEXT
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS favorites (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT,
+                    description TEXT,
+                    price TEXT,
+                    imageURL TEXT,
+                    productURL TEXT,
+                    source TEXT,
+                    sourceLogo TEXT,
+                    rating TEXT,
+                    reviewCount TEXT,
+                    UNIQUE(email, productURL)
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_profile (
+                    email TEXT PRIMARY KEY,
+                    display_name TEXT,
+                    notifications_enabled INTEGER DEFAULT 1
                 )
             """)
             conn.commit()
@@ -290,6 +312,129 @@ def logout():
     session.clear()
     logging.info("Utilisateur déconnecté.")
     return jsonify({"message": "Déconnexion réussie."})
+
+
+@app.route('/favorites', methods=['GET'])
+def get_favorites():
+    """Récupère les favoris de l'utilisateur."""
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
+    
+    email = session['email']
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM favorites WHERE email = ?", (email,))
+            rows = cursor.fetchall()
+            favorites = [dict(row) for row in rows]
+            return jsonify(favorites)
+    except Exception as e:
+        logging.error("Erreur lors de la récupération des favoris: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/favorites', methods=['POST'])
+def add_favorite():
+    """Ajoute un produit aux favoris."""
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
+    
+    email = session['email']
+    data = request.json
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT OR REPLACE INTO favorites 
+                (email, description, price, imageURL, productURL, source, sourceLogo, rating, reviewCount)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                email, 
+                data.get('description'), 
+                data.get('price'), 
+                data.get('imageURL'), 
+                data.get('productURL'), 
+                data.get('source'), 
+                data.get('sourceLogo'), 
+                data.get('rating'), 
+                data.get('reviewCount')
+            ))
+            conn.commit()
+        return jsonify({"message": "Favori ajouté avec succès."})
+    except Exception as e:
+        logging.error("Erreur lors de l'ajout du favori: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/favorites/remove', methods=['POST'])
+def remove_favorite():
+    """Supprime un produit des favoris."""
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
+    
+    email = session['email']
+    productURL = request.json.get('productURL')
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM favorites WHERE email = ? AND productURL = ?", (email, productURL))
+            conn.commit()
+        return jsonify({"message": "Favori supprimé avec succès."})
+    except Exception as e:
+        logging.error("Erreur lors de la suppression du favori: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/profile', methods=['GET'])
+def get_profile():
+    """Récupère le profil de l'utilisateur."""
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
+    
+    email = session['email']
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM user_profile WHERE email = ?", (email,))
+            row = cursor.fetchone()
+            if row:
+                return jsonify(dict(row))
+            else:
+                # Créer un profil par défaut si inexistant
+                display_name = email.split('@')[0]
+                cursor.execute("INSERT INTO user_profile (email, display_name) VALUES (?, ?)", (email, display_name))
+                conn.commit()
+                return jsonify({"email": email, "display_name": display_name, "notifications_enabled": 1})
+    except Exception as e:
+        logging.error("Erreur lors de la récupération du profil: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/profile', methods=['POST'])
+def update_profile():
+    """Met à jour le profil de l'utilisateur."""
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
+    
+    email = session['email']
+    data = request.json
+    display_name = data.get('display_name')
+    notifications_enabled = 1 if data.get('notifications_enabled') else 0
+    
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT OR REPLACE INTO user_profile (email, display_name, notifications_enabled)
+                VALUES (?, ?, ?)
+            """, (email, display_name, notifications_enabled))
+            conn.commit()
+        return jsonify({"message": "Profil mis à jour avec succès."})
+    except Exception as e:
+        logging.error("Erreur lors de la mise à jour du profil: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/status', methods=['GET'])

@@ -1,0 +1,105 @@
+.profile-container {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+  min-height: 80vh;
+
+  .header {
+    margin-bottom: 2rem;
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #1f2937;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      color: #6b7280;
+    }
+  }
+
+  .profile-card {
+    background: white;
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f3f4f6;
+
+    .section {
+      margin-bottom: 1.5rem;
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 1.5rem;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+
+        label {
+          font-weight: 600;
+          color: #4b5563;
+          font-size: 0.9rem;
+        }
+
+        input {
+          width: 100%;
+          border-radius: 10px;
+          padding: 0.75rem;
+
+          &.disabled-input {
+            background: #f9fafb;
+            color: #9ca3af;
+            cursor: not-allowed;
+          }
+        }
+      }
+
+      .field-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+
+        label {
+          font-weight: 500;
+          color: #4b5563;
+          cursor: pointer;
+        }
+      }
+
+      .info-text {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+      }
+    }
+
+    .divider {
+      height: 1px;
+      background: #f3f4f6;
+      margin: 2rem 0;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 2rem;
+
+      button {
+        background: #4632e2;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+
+        &:hover {
+          background: #3626af;
+        }
+      }
+    }
+  }
+}

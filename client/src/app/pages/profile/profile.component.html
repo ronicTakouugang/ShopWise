@@ -1,0 +1,43 @@
+<div class="profile-container">
+  <p-toast></p-toast>
+  <div class="header">
+    <h1>Mon Profil</h1>
+    <p>Gérez vos informations personnelles et vos préférences.</p>
+  </div>
+
+  <div class="profile-card">
+    <div class="section">
+      <h3>Informations personnelles</h3>
+      <div class="field">
+        <label for="display_name">Nom d'affichage</label>
+        <input id="display_name" type="text" pInputText [(ngModel)]="profile.display_name" placeholder="Votre nom" />
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="text" pInputText [value]="authService.username" disabled class="disabled-input" />
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <h3>Préférences</h3>
+      <div class="field-checkbox">
+        <p-checkbox [(ngModel)]="profile.notifications_enabled" [binary]="true" id="notif"></p-checkbox>
+        <label for="notif">Recevoir des notifications sur les baisses de prix</label>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section">
+      <h3>Sécurité</h3>
+      <p class="info-text">Vous pouvez réinitialiser votre mot de passe en recevant un lien par email.</p>
+      <button pButton label="Changer de mot de passe" icon="pi pi-key" class="p-button-outlined" (click)="changePassword()"></button>
+    </div>
+
+    <div class="footer">
+      <button pButton label="Enregistrer les modifications" icon="pi pi-check" [loading]="loading" (click)="saveProfile()"></button>
+    </div>
+  </div>
+</div>

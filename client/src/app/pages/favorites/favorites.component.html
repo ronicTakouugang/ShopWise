@@ -1,0 +1,22 @@
+<div class="favorites-container">
+  <div class="header">
+    <h1>Mes Favoris</h1>
+    <p>Retrouvez ici tous les produits que vous avez mis de côté.</p>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <p>Chargement de vos favoris...</p>
+  </div>
+
+  <div *ngIf="!loading && favorites.length === 0" class="empty-state">
+    <i class="pi pi-heart"></i>
+    <h2>Aucun favori pour le moment</h2>
+    <p>Commencez à explorer pour ajouter des produits à votre liste.</p>
+    <button class="explore-btn" routerLink="/home">Explorer les produits</button>
+  </div>
+
+  <div class="favorites-grid" *ngIf="!loading && favorites.length > 0">
+    <app-article *ngFor="let article of favorites" [article]="article"></app-article>
+  </div>
+</div>

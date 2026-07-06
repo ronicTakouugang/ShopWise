@@ -6,6 +6,9 @@
     <div class="promo-badge" *ngIf="article.oldPrice">
       OFFRE
     </div>
+    <button class="favorite-btn" [class.active]="isFavorite" (click)="toggleFavorite($event)" *ngIf="authService.isAuth">
+      <i class="pi" [ngClass]="isFavorite ? 'pi-heart-fill' : 'pi-heart'"></i>
+    </button>
   </div>
 
   <div class="card-content">
