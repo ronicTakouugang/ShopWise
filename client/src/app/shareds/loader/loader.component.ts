@@ -1,11 +1,9 @@
 import {Component, CUSTOM_ELEMENTS_SCHEMA, OnInit} from '@angular/core';
 import {LoaderService} from './services/loader.service';
-import {ProgressSpinner} from 'primeng/progressspinner';
 
 @Component({
   selector: 'app-loader',
   imports: [
-    ProgressSpinner
   ],
   templateUrl: './loader.component.html',
   standalone: true,

@@ -9,11 +9,27 @@
   </ng-template>
   <ng-template #end>
     @if (!authSer.isAuth){
-      <p-button class="auth--btn" label="Se connecter" variant="text" icon="pi pi-user" (click)="signIn()"/>
-      <p-button label="S'inscrire" icon="pi pi-user" (click)="signOn()"/>
+      <div class="auth-actions">
+        <p-button class="auth--btn" label="Se connecter" variant="text" icon="pi pi-user" (click)="signIn()"/>
+        <p-button label="S'inscrire" icon="pi pi-user-plus" (click)="signOn()"/>
+      </div>
     } @else {
-      {{authSer.username}}
-      <p-button class="logout--btn" severity="danger" label="Déconnexion" icon="pi pi-power-off" (click)="signOut()"/>
+      <div class="user-actions">
+        <div class="user-info" (click)="menu.toggle($event)">
+          <div class="text-info">
+            <span class="welcome-text">Bienvenue,</span>
+            <span class="user-name">{{authSer.username.split('@')[0]}}</span>
+          </div>
+          <p-avatar
+            [label]="authSer.username.charAt(0).toUpperCase()"
+            shape="circle"
+            styleClass="user-avatar"
+            size="large">
+          </p-avatar>
+          <i class="pi pi-chevron-down ml-2 chevron-icon"></i>
+        </div>
+        <p-menu #menu [model]="userMenuItems" [popup]="true" appendTo="body"></p-menu>
+      </div>
     }
   </ng-template>
 </p-toolbar>

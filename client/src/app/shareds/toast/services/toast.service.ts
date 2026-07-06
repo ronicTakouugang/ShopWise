@@ -12,20 +12,20 @@ export class ToastService {
 
   showSuccess() {
     console.log("showSuccess");
-    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Message Content' });
+    this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Opération réussie' });
   }
 
   showInfo(response:HttpResponse<any>) {
     console.log("showInfo");
-    this.messageService.add({ severity: 'info', summary: 'Info', detail: response.statusText});
+    this.messageService.add({ severity: 'info', summary: 'Information', detail: response.statusText});
   }
 
   showWarn() {
-    this.messageService.add({ severity: 'warn', summary: 'Warn', detail: 'Message Content' });
+    this.messageService.add({ severity: 'warn', summary: 'Attention', detail: 'Action requise' });
   }
 
-  showError(s: string) {
-    this.messageService.add({ severity: 'error', summary: 'Error', detail: s });
+  showError(s: string, summary: string = 'Erreur') {
+    this.messageService.add({ severity: 'error', summary: summary, detail: s });
   }
 
   showContrast() {

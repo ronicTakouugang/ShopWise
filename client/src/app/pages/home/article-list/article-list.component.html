@@ -20,9 +20,22 @@
 </div>
 
 <div class="article--list">
-  @for (article of paginatedArticles; track article.productURL){
-    <app-article [article]="article"/>
-  }
+  <ng-container *ngIf="isLoading">
+    <div class="skeleton-card" *ngFor="let i of [1,2,3,4,5,6]">
+      <div class="skeleton-image"></div>
+      <div class="skeleton-content">
+        <div class="skeleton-title"></div>
+        <div class="skeleton-price"></div>
+        <div class="skeleton-footer"></div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="!isLoading">
+    @for (article of paginatedArticles; track article.productURL){
+      <app-article [article]="article"/>
+    }
+  </ng-container>
 </div>
 
 <div class="pagination" *ngIf="totalPages > 1">

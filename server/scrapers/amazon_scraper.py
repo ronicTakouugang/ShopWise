@@ -5,7 +5,7 @@ import time
 import pandas as pd
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from utils import extract_price as util_extract_price, convert_to_euro, robust_request
+from utils import extract_price as util_extract_price, convert_to_euro, robust_request, translate_to_english
 
 # -----------------------------------------------------------------------------
 logger = logging.getLogger(__name__)
@@ -186,14 +186,16 @@ def scrape_amazon(search_term):
     """
     Scrape les resultats Amazon pour le terme de recherche donne.
     """
-    logger.info(f"Demarrage du scraping pour : {search_term}")
+    # Traduire le terme de recherche en anglais pour Amazon.com
+    search_term_en = translate_to_english(search_term)
+    logger.info(f"Demarrage du scraping pour : {search_term} (traduit en: {search_term_en})")
     
     records = []
     pages_to_fetch = list(range(1, 3))  # Limite a 2 pages pour plus de rapidite et discretion
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_to_page = {
-            executor.submit(fetch_page, search_term, page): page
+            executor.submit(fetch_page, search_term_en, page): page
             for page in pages_to_fetch
         }
         for future in as_completed(future_to_page):

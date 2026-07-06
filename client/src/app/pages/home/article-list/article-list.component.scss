@@ -5,7 +5,60 @@
   align-items: flex-start;
   justify-content: center;
   padding: 20px 0;
-  gap: 10px;
+  gap: 20px;
+}
+
+/* Skeleton Loader */
+.skeleton-card {
+  width: 300px;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f3f4f6;
+
+  .skeleton-image {
+    width: 100%;
+    height: 200px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+  }
+
+  .skeleton-content {
+    padding: 16px;
+
+    .skeleton-title {
+      height: 20px;
+      width: 80%;
+      background: #f0f0f0;
+      margin-bottom: 12px;
+      border-radius: 4px;
+      animation: skeleton-loading 1.5s infinite;
+    }
+
+    .skeleton-price {
+      height: 24px;
+      width: 40%;
+      background: #f0f0f0;
+      margin-bottom: 16px;
+      border-radius: 4px;
+      animation: skeleton-loading 1.5s infinite;
+    }
+
+    .skeleton-footer {
+      height: 30px;
+      width: 100%;
+      background: #f0f0f0;
+      border-radius: 8px;
+      animation: skeleton-loading 1.5s infinite;
+    }
+  }
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .filter-section {

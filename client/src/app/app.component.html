@@ -1,5 +1,18 @@
 <app-nav-cmp (inFormEvent)="openSignInForm($event)" (onFormEvent)="openSignOnForm($event)"></app-nav-cmp>
-<p-toast/>
+<app-loader></app-loader>
+<p-toast>
+  <ng-template let-message pTemplate="message">
+    <div class="custom-toast" [ngClass]="'toast-' + message.severity">
+      <div class="toast-icon">
+        <i [class]="getIcon(message.severity)"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-summary">{{ message.summary }}</div>
+        <div class="toast-detail">{{ message.detail }}</div>
+      </div>
+    </div>
+  </ng-template>
+</p-toast>
 <div class="{{openForm?'overlay':'no-display'}}">
   <app-auth-form [authForm]="openForm" (closeEvent)="closeModal($event)"
                  (changeFormEvent)="changeForm($event)" [hadAcc]="hadAccount"></app-auth-form>

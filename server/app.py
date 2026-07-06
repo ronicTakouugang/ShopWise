@@ -223,7 +223,7 @@ def register():
     Retourne un message de succès ou une erreur.
     """
     data = request.get_json()
-    email = data.get("email")
+    email = data.get("email", "").strip()
     password = data.get("password")
     if not email or not password:
         return jsonify({"error": "Email et mot de passe requis."}), 400
@@ -251,7 +251,7 @@ def login():
     Stocke l'email et le token dans la session.
     """
     data = request.get_json()
-    email = data.get("email")
+    email = data.get("email", "").strip()
     password = data.get("password")
     if not email or not password:
         return jsonify({"error": "Email et mot de passe requis."}), 400

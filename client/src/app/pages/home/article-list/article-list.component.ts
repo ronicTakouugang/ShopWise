@@ -4,6 +4,7 @@ import {ArticleService} from './service/article.service';
 import {Article} from './service/article';
 import {FormsModule} from '@angular/forms';
 import {CommonModule} from '@angular/common';
+import {LoaderService} from '../../../shareds/loader/services/loader.service';
 
 @Component({
   selector: 'app-article-list',
@@ -30,11 +31,15 @@ export class ArticleListComponent implements OnInit{
   currentPage: number = 1;
   pageSize: number = 10;
   totalPages: number = 0;
+  isLoading: boolean = false;
 
-  constructor(private articlesService:ArticleService) {
+  constructor(private articlesService:ArticleService, private loaderService: LoaderService) {
   }
 
   ngOnInit(): void {
+    this.loaderService.loadingSubject.subscribe(loading => {
+      this.isLoading = loading;
+    });
     this.articlesService.articleSubject.subscribe(articles => {
       this.allArticles = articles;
       this.applyFiltersAndSort();

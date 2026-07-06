@@ -7,6 +7,7 @@ import {InputTextModule} from "primeng/inputtext";
 import {PasswordModule} from "primeng/password";
 import {SharedModule} from "primeng/api";
 import {AuthService} from '../../auth.service';
+import {ToastService} from '../../../toast/services/toast.service';
 import {catchError, tap, throwError} from 'rxjs';
 import {FormsModule} from '@angular/forms';
 
@@ -31,7 +32,7 @@ export class SignOnComponent {
   email: string="";
   password: string="";
 
-  constructor(private authService: AuthService) {
+  constructor(private authService: AuthService, private toastService: ToastService) {
   }
 
   @Output()
@@ -54,12 +55,13 @@ export class SignOnComponent {
     this.authService.signOn(this.email,this.password).pipe(
       tap(data =>{
           this.loading = false;
+          this.toastService.showSuccess();
           this.closeModal();
         }
       ),
       catchError((err: any) => {
         this.loading = false;
-        this.errorMessage = err.error?.error || err.message || "Erreur lors de l'inscription.";
+        // L'intercepteur gère déjà l'affichage du toast d'erreur
         return throwError(() => err);
       })
     ).subscribe();

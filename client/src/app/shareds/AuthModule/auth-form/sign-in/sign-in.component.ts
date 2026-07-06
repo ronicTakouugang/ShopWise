@@ -7,6 +7,7 @@ import {InputTextModule} from "primeng/inputtext";
 import {PasswordModule} from "primeng/password";
 import {DividerModule} from "primeng/divider";
 import {AuthService} from '../../auth.service';
+import {ToastService} from '../../../toast/services/toast.service';
 import {FormsModule} from '@angular/forms';
 import {catchError, tap, throwError} from 'rxjs';
 
@@ -30,7 +31,7 @@ export class SignInComponent {
 
   email: string = "";
   password: string = "";
-  constructor(private authService:AuthService) {
+  constructor(private authService:AuthService, private toastService: ToastService) {
   }
 
   @Output()
@@ -55,12 +56,13 @@ export class SignInComponent {
     this.authService.signIn(this.email,this.password).pipe(
       tap(data =>{
           this.loading = false;
+          this.toastService.showSuccess();
           this.closeModal();
         }
       ),
       catchError((err: any) => {
         this.loading = false;
-        this.errorMessage = err.error?.error || err.message || "Erreur de connexion.";
+        // L'intercepteur gère déjà l'affichage du toast d'erreur
         return throwError(() => err);
       })
     ).subscribe();

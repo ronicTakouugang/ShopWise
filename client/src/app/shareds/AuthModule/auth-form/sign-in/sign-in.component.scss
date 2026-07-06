@@ -85,6 +85,9 @@
   color: #9ca3af;
   z-index: 2;
   font-size: 14px;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  pointer-events: none;
 }
 
 ::ng-deep {

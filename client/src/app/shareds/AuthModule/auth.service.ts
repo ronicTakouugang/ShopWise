@@ -14,14 +14,15 @@ export class AuthService {
   constructor(private http:HttpClient) { }
 
   signIn(email:string, password:string){
-    if (!email || !email.includes('@')) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
        return throwError(() => new Error("Email invalide."));
     }
     if (!password) {
        return throwError(() => new Error("Mot de passe requis."));
     }
-    let body = {email,password};
-    console.log("Tentative de connexion pour :", email);
+    let body = {email: cleanEmail, password};
+    console.log("Tentative de connexion pour :", cleanEmail);
     return this.http.post(`${this.apiUrl}/login`, body).pipe(
       timeout(25000),
       tap(data =>{
@@ -37,14 +38,15 @@ export class AuthService {
   }
 
   signOn(email:string, password:string){
-    if (!email || !email.includes('@')) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
        return throwError(() => new Error("Veuillez entrer un email valide."));
     }
     if (!password || password.length < 6) {
        return throwError(() => new Error("Le mot de passe doit contenir au moins 6 caractères."));
     }
-    let body = {email,password};
-    console.log("Tentative d'inscription pour :", email);
+    let body = {email: cleanEmail, password};
+    console.log("Tentative d'inscription pour :", cleanEmail);
     return this.http.post(`${this.apiUrl}/register`, body).pipe(
       timeout(25000),
       tap(data =>{

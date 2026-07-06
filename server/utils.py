@@ -4,6 +4,7 @@ import random
 import time
 from curl_cffi import requests as curl_requests
 from fake_useragent import UserAgent
+from deep_translator import GoogleTranslator
 
 ua = UserAgent()
 
@@ -13,25 +14,14 @@ def get_robust_headers():
     headers = {
         "User-Agent": user_agent,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Language": "en-US,en;q=0.9",
         "Accept-Encoding": "gzip, deflate, br",
         "DNT": "1",
         "Connection": "keep-alive",
         "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Cache-Control": "max-age=0",
     }
-    # Ajouter des referers communs aléatoirement
-    referers = [
-        "https://www.google.com/",
-        "https://www.bing.com/",
-        "https://duckduckgo.com/",
-        "https://www.facebook.com/",
-    ]
-    headers["Referer"] = random.choice(referers)
+    # On évite les referers qui pourraient trahir une origine non-US pour Walmart
+    # headers["Referer"] = random.choice(referers) 
     return headers
 
 def robust_request(url, method="GET", impersonate="chrome120", timeout=30, max_retries=3, **kwargs):
@@ -141,6 +131,21 @@ def format_price(price_value: float) -> str:
     except Exception as e:
         logging.error("Erreur de formatage pour le prix %s: %s", price_value, e)
         return "N/A"
+
+def translate_to_english(text: str) -> str:
+    """
+    Traduit un texte en anglais si nécessaire.
+    """
+    if not text:
+        return ""
+    try:
+        # On tente de traduire. Si c'est déjà en anglais, GoogleTranslator gère généralement bien.
+        translated = GoogleTranslator(source='auto', target='en').translate(text)
+        logging.info(f"Traduction: '{text}' -> '{translated}'")
+        return translated
+    except Exception as e:
+        logging.error(f"Erreur lors de la traduction de '{text}': {e}")
+        return text
 
 def convert_to_euro(price_str: str) -> str:
     """

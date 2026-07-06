@@ -4,7 +4,7 @@ import time
 import pandas as pd
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from utils import extract_price as util_extract_price, convert_to_euro, robust_request
+from utils import extract_price as util_extract_price, convert_to_euro, robust_request, translate_to_english
 
 # Configuration du logging
 logging.basicConfig(
@@ -38,17 +38,29 @@ def scrape_walmart_record(item):
         title_span = item.find("span", {"data-automation-id": "product-title"})
         if title_span:
             description = title_span.get_text(strip=True)
+        else:
+            # Fallback vers h3 qui est souvent utilisé maintenant
+            h3_tag = item.find("h3")
+            if h3_tag:
+                description = h3_tag.get_text(strip=True)
         
         # Récupération de l'URL du produit
         a_tag = item.find("a", href=re.compile(r"/ip/"))
         if a_tag and a_tag.has_attr("href"):
-            product_url = "https://www.walmart.com" + a_tag["href"]
+            href = a_tag["href"]
+            if href.startswith("http"):
+                product_url = href
+            else:
+                product_url = "https://www.walmart.com" + href
+            
             if description == "N/A":
                 description = a_tag.get_text(strip=True)
         else:
-            a_tag = item.find("a", href=True)
-            if a_tag:
-                product_url = "https://www.walmart.com" + a_tag["href"]
+            # Chercher n'importe quel tag 'a' qui contient /ip/ dans son href, même s'il a d'autres attributs
+            a_tag = item.find("a", href=lambda x: x and "/ip/" in x)
+            if a_tag and a_tag.has_attr("href"):
+                href = a_tag["href"]
+                product_url = href if href.startswith("http") else "https://www.walmart.com" + href
                 if description == "N/A":
                     description = a_tag.get_text(strip=True)
         
@@ -60,9 +72,11 @@ def scrape_walmart_record(item):
             
         if price_div:
             text = price_div.get_text(separator=" ", strip=True)
-            matches = re.findall(r"\$(\d+\.\d{2})", text)
+            # Gestion des formats comme "Now $7.98" ou "$7.98 current price"
+            matches = re.findall(r"\$\d+\.\d{2}", text)
             if matches:
-                price = "$" + matches[0]
+                # On prend le premier prix trouvé qui est généralement le prix actuel
+                price = matches[0]
                 price_euro = convert_price_to_euro(price)
             else:
                 # Fallback pour d'autres formats de prix
@@ -93,7 +107,7 @@ def scrape_walmart_record(item):
         if fees_container:
             hidden_fees = fees_container.get_text(separator=" ", strip=True)
         
-        logging.info(f"Produit extrait: {description} - {price_euro} - Rating: {rating} - Frais cachés: {hidden_fees}")
+        logging.info(f"Extraction - Titre: {description[:30]}... URL: {product_url[:30]}... Prix: {price_euro}")
         return {
             "description": description,
             "price": price_euro,
@@ -127,14 +141,16 @@ def scrape_walmart(search_term):
     """
     Scrape les résultats Walmart pour le terme de recherche donné.
     """
-    logging.info(f"🔍 Début du scraping Walmart pour: {search_term}")
+    # Traduire le terme de recherche en anglais pour Walmart
+    search_term_en = translate_to_english(search_term)
+    logging.info(f"🔍 Début du scraping Walmart pour: {search_term} (traduit en: {search_term_en})")
     
     records = []
     pages_to_fetch = [1]  # Walmart est très sensible, on commence par une page
     
     with ThreadPoolExecutor(max_workers=1) as executor:
         future_to_page = {
-            executor.submit(fetch_page, search_term, page): page
+            executor.submit(fetch_page, search_term_en, page): page
             for page in pages_to_fetch
         }
         for future in as_completed(future_to_page):
@@ -145,9 +161,16 @@ def scrape_walmart(search_term):
             logging.info(f"📄 Scraping de la page {page}...")
             # Récupération de tous les produits
             product_items = soup.find_all("div", {"data-item-id": True})
+            logging.info(f"Trouvé {len(product_items)} items avec data-item-id")
             if not product_items:
                 product_items = soup.select('div[data-testid="item-stack"] > div')
+                logging.info(f"Trouvé {len(product_items)} items avec item-stack")
     
+            if not product_items:
+                # Tentative désespérée : chercher des divs qui ressemblent à des produits
+                product_items = soup.find_all("div", class_=re.compile(r"mb0 ph0"))
+                logging.info(f"Tentative fallback: Trouvé {len(product_items)} items")
+
             for item in product_items:
                 record = scrape_walmart_record(item)
                 if record:
