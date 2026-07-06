@@ -68,13 +68,20 @@ def scrape_records(item):
             price = price_container.get_text(strip=True)
             price_euro = convert_price_to_euro(price)
 
-        # Rating
+        # Rating et Popularité
+        rating = "No Rating"
+        review_count = "0"
         rating_container = item.select_one("span.a-icon-alt")
-        rating = rating_container.get_text(strip=True) if rating_container else "No Rating"
+        if rating_container:
+            rating_text = rating_container.get_text(strip=True)
+            rating = rating_text.split(" ")[0]
         
-        # Extraire le nombre de ventes ou d'avis (pour la pertinence)
+        # Extraire le nombre d'avis
         popularity = 0
         popularity_container = item.select_one("span.a-size-base.s-underline-text")
+        if not popularity_container:
+            # Chercher dans les liens qui ont aria-label contenant "ratings" ou "reviews"
+            popularity_container = item.find("span", aria_label=re.compile(r"ratings|reviews", re.I))
         if not popularity_container:
             popularity_container = item.select_one("span.a-size-base") # Autre sélecteur possible
             
@@ -84,6 +91,7 @@ def scrape_records(item):
             pop_digits = "".join(filter(str.isdigit, pop_text))
             if pop_digits:
                 popularity = int(pop_digits)
+                review_count = str(popularity)
 
         # Image URL
         image_url = "N/A"
@@ -157,6 +165,7 @@ def scrape_records(item):
             "description": description,
             "price": price_euro,
             "rating": rating,
+            "reviewCount": review_count,
             "popularity": popularity,
             "productURL": product_url,
             "imageURL": image_url,
@@ -213,7 +222,7 @@ def scrape_amazon(search_term):
                 if record:
                     records.append(record)
     
-    df = pd.DataFrame(records, columns=["description", "price", "rating", "popularity", "productURL", "imageURL", "hiddenFees", "source", "sourceLogo"])
+    df = pd.DataFrame(records, columns=["description", "price", "rating", "reviewCount", "popularity", "productURL", "imageURL", "hiddenFees", "source", "sourceLogo"])
     
     if not df.empty:
         df["price_numeric"] = df["price"].apply(lambda x: util_extract_price(str(x)))

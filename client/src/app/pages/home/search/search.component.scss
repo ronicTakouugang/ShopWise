@@ -9,12 +9,14 @@
   height: 60px;
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  transition: all 0.3s ease;
-  border: 2px solid #e5e7eb;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 
   &:focus-within {
     border-color: #4632e2;
-    box-shadow: 0 0 0 3px rgba(70, 50, 226, 0.2);
+    box-shadow: 0 12px 32px rgba(70, 50, 226, 0.15);
+    transform: translateY(-2px);
   }
 
   &.disabled {
@@ -71,10 +73,15 @@
   border: none;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin-left: 8px;
-}
 
-.search-btn:hover:not(:disabled) {
-  background-color: #3a28c4;
+  &:hover:not(:disabled) {
+    background-color: #3a28c4;
+    transform: scale(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
 }

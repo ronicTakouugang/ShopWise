@@ -42,7 +42,15 @@ firebase_auth = firebase.auth()
 # --- Configuration de l'application Flask ---
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "default-secret-key")
-CORS(app, supports_credentials=True)
+
+# Configuration des cookies de session
+app.config.update(
+    SESSION_COOKIE_SECURE=False,  # Mettre à True en production avec HTTPS
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+)
+
+CORS(app, supports_credentials=True, origins=["http://localhost:4200"])
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 

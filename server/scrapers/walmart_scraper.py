@@ -85,15 +85,24 @@ def scrape_walmart_record(item):
                     price = price_match.group()
                     price_euro = convert_price_to_euro(price)
         
-        # Extraction du rating
+        # Extraction du rating et nombre d'avis
         rating = "No Rating"
+        review_count = "0"
+        
         rating_span = item.find("span", {"data-testid": "product-ratings"})
         if rating_span and rating_span.has_attr("data-value"):
             rating = rating_span["data-value"]
-        else:
-            rating_search = re.search(r"(\d+\.\d+)\s*out of\s*5", item.get_text(), re.IGNORECASE)
-            if rating_search:
-                rating = rating_search.group(1)
+        
+        # Tentative d'extraction du nombre d'avis
+        full_text = item.get_text(separator=" ", strip=True)
+        # Format typique: "4.6 out of 5 Stars. 297 reviews"
+        rating_match = re.search(r"(\d+\.\d+|\d+)\s*out of\s*5", full_text, re.IGNORECASE)
+        if rating_match and rating == "No Rating":
+            rating = rating_match.group(1)
+            
+        review_match = re.search(r"(\d+[\d,\.]*)\s*reviews", full_text, re.IGNORECASE)
+        if review_match:
+            review_count = review_match.group(1).replace(",", "").replace(".", "")
         
         # Extraction de l'image
         image_url = "N/A"
@@ -112,7 +121,8 @@ def scrape_walmart_record(item):
             "description": description,
             "price": price_euro,
             "rating": rating,
-            "popularity": 0,  # Par défaut à 0 pour Walmart pour l'instant
+            "reviewCount": review_count,
+            "popularity": int(review_count) if review_count.isdigit() else 0,
             "productURL": product_url,
             "imageURL": image_url,
             "hiddenFees": hidden_fees,
@@ -176,7 +186,7 @@ def scrape_walmart(search_term):
                 if record:
                     records.append(record)
     
-    df = pd.DataFrame(records, columns=["description", "price", "rating", "popularity", "productURL", "imageURL", "hiddenFees", "source", "sourceLogo"])
+    df = pd.DataFrame(records, columns=["description", "price", "rating", "reviewCount", "popularity", "productURL", "imageURL", "hiddenFees", "source", "sourceLogo"])
     
     if not df.empty:
         df = df.drop_duplicates(subset=["productURL"])

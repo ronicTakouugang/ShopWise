@@ -23,7 +23,7 @@ export class AuthService {
     }
     let body = {email: cleanEmail, password};
     console.log("Tentative de connexion pour :", cleanEmail);
-    return this.http.post(`${this.apiUrl}/login`, body).pipe(
+    return this.http.post(`${this.apiUrl}/login`, body, { withCredentials: true }).pipe(
       timeout(25000),
       tap(data =>{
         console.log("Login réussi: ", data);
@@ -47,7 +47,7 @@ export class AuthService {
     }
     let body = {email: cleanEmail, password};
     console.log("Tentative d'inscription pour :", cleanEmail);
-    return this.http.post(`${this.apiUrl}/register`, body).pipe(
+    return this.http.post(`${this.apiUrl}/register`, body, { withCredentials: true }).pipe(
       timeout(25000),
       tap(data =>{
         console.log("Inscription réussie: ", data);
@@ -62,7 +62,7 @@ export class AuthService {
   }
 
   signOut() {
-    return this.http.post(`${this.apiUrl}/logout`, null).pipe(
+    return this.http.post(`${this.apiUrl}/logout`, null, { withCredentials: true }).pipe(
       timeout(25000),
       tap(data =>{
         console.log("Logout réussi: ", data);
