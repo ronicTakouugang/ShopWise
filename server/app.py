@@ -237,7 +237,9 @@ def register():
         return jsonify({"error": "Email et mot de passe requis."}), 400
     try:
         user = firebase_auth.create_user_with_email_and_password(email, password)
+        session.permanent = True
         session['email'] = email
+        session['idToken'] = user.get('idToken')
         logging.info("Compte créé pour %s", email)
         return jsonify({"message": "Compte créé avec succès.", "email": email})
     except Exception as e:
@@ -265,6 +267,7 @@ def login():
         return jsonify({"error": "Email et mot de passe requis."}), 400
     try:
         user = firebase_auth.sign_in_with_email_and_password(email, password)
+        session.permanent = True
         session['email'] = email
         session['idToken'] = user.get('idToken')
         logging.info("Utilisateur connecté : %s", email)
@@ -287,6 +290,17 @@ def logout():
     session.clear()
     logging.info("Utilisateur déconnecté.")
     return jsonify({"message": "Déconnexion réussie."})
+
+
+@app.route('/status', methods=['GET'])
+def get_status():
+    """Vérifie si l'utilisateur est connecté via la session."""
+    if 'email' in session:
+        return jsonify({
+            "isAuth": True,
+            "email": session['email']
+        })
+    return jsonify({"isAuth": False}), 200
 
 
 @app.route('/forgot_password', methods=['POST'])

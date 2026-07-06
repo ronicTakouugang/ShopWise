@@ -11,7 +11,25 @@ export class AuthService {
   apiUrl = environment.apiUrl;
   username="";
   isAuth:boolean=false;
-  constructor(private http:HttpClient) { }
+  constructor(private http:HttpClient) {
+    this.checkAuthStatus();
+  }
+
+  checkAuthStatus() {
+    this.http.get<{isAuth: boolean, email?: string}>(`${this.apiUrl}/status`, { withCredentials: true })
+      .subscribe({
+        next: (res) => {
+          if (res.isAuth && res.email) {
+            this.isAuth = true;
+            this.username = res.email;
+            console.log("Session restaurée pour :", res.email);
+          }
+        },
+        error: (err) => {
+          console.log("Pas de session active.");
+        }
+      });
+  }
 
   signIn(email:string, password:string){
     const cleanEmail = email.trim();
