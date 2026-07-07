@@ -665,7 +665,8 @@ def get_current_price(product_url: str) -> float:
     Pour une application réelle, implémentez la logique de scraping ou d'API.
     """
     try:
-        price = random.uniform(1000, 10000)
+        # Simulation d'un prix en Euro raisonnable (entre 10 et 500)
+        price = random.uniform(10, 500)
         return price
     except Exception as e:
         logging.error("Erreur lors de la simulation du prix pour '%s': %s", product_url, e)

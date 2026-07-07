@@ -4,7 +4,8 @@
       <i class="pi pi-arrow-left"></i>
       Retour
     </button>
-    <h1>Mes Favoris</h1>
+    <h1 *ngIf="!loading">Mes Favoris ({{favorites.length}})</h1>
+    <h1 *ngIf="loading">Mes Favoris</h1>
     <p>Retrouvez ici tous les produits que vous avez mis de côté.</p>
 
     <div class="controls" *ngIf="!loading && favorites.length > 0">
@@ -25,30 +26,59 @@
   </div>
 
   <div *ngIf="!loading && favorites.length === 0" class="empty-state">
-    <i class="pi pi-heart"></i>
-    <h2>Aucun favori pour le moment</h2>
-    <p>Commencez à explorer pour ajouter des produits à votre liste.</p>
-    <button class="explore-btn" routerLink="/home">Explorer les produits</button>
+    <div class="empty-icon-container">
+      <i class="pi pi-heart"></i>
+    </div>
+    <h2>Votre liste est vide</h2>
+    <p>Vous n'avez pas encore ajouté de produits à vos favoris. Parcourez nos offres et cliquez sur le cœur pour les retrouver ici !</p>
+    <button class="explore-btn" routerLink="/home">
+      <i class="pi pi-search"></i>
+      Découvrir des produits
+    </button>
   </div>
 
   <div class="favorites-grid" *ngIf="!loading && favorites.length > 0">
-    <div class="favorite-item-wrapper" *ngFor="let article of favorites">
+    <div class="favorite-item-wrapper" *ngFor="let article of favorites" [class.selected]="isComparing(article)">
       <app-article [article]="article" (favoriteChanged)="onFavoriteChanged(article, $event)"></app-article>
       <button class="compare-checkbox-btn" [class.selected]="isComparing(article)" (click)="toggleCompare(article)">
+        <i class="pi" [ngClass]="isComparing(article) ? 'pi-check-circle' : 'pi-plus-circle'"></i>
         {{ isComparing(article) ? 'Prêt pour comparaison' : 'Comparer' }}
       </button>
     </div>
   </div>
 
-  <div class="comparison-panel" *ngIf="compareList.length >= 2">
-    <h3>Comparaison rapide</h3>
-    <div class="comparison-grid">
-      <div class="comparison-column" *ngFor="let item of compareList">
-        <img [src]="item.imageURL" [alt]="item.description">
-        <p class="title">{{item.description}}</p>
-        <p class="price">{{item.price}}</p>
-        <p class="source">{{item.source}}</p>
-        <button (click)="toggleCompare(item)">Retirer</button>
+  <div class="comparison-floating-bar" *ngIf="compareList.length >= 2">
+    <div class="comparison-info">
+      <span class="count">{{compareList.length}}</span>
+      <span>produits sélectionnés pour comparaison</span>
+    </div>
+    <div class="comparison-actions">
+      <button class="clear-btn" (click)="compareList = []">Vider</button>
+      <button class="compare-btn" (click)="showComparisonPanel = true">
+        Comparer maintenant
+      </button>
+    </div>
+  </div>
+
+  <div class="comparison-panel-overlay" *ngIf="showComparisonPanel" (click)="showComparisonPanel = false">
+    <div class="comparison-panel" (click)="$event.stopPropagation()">
+      <div class="panel-header">
+        <h3>Comparaison rapide</h3>
+        <button class="close-panel" (click)="showComparisonPanel = false"><i class="pi pi-times"></i></button>
+      </div>
+      <div class="comparison-grid">
+        <div class="comparison-column" *ngFor="let item of compareList">
+          <div class="img-container">
+            <img [src]="item.imageURL" [alt]="item.description">
+          </div>
+          <p class="title">{{item.description}}</p>
+          <p class="price">{{item.price}}</p>
+          <p class="source">{{item.source}}</p>
+          <button class="remove-btn" (click)="toggleCompare(item)">
+            <i class="pi pi-trash"></i>
+            Retirer
+          </button>
+        </div>
       </div>
     </div>
   </div>

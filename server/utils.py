@@ -185,6 +185,11 @@ def convert_to_euro(price_str: str) -> str:
         elif "EUR" in price_str or "€" in price_str:
             # Déjà en Euro, on garde la valeur telle quelle
             pass
+        else:
+            # Par défaut, si aucune devise n'est détectée mais que le montant est très élevé,
+            # on suppose que c'est du FCFA (cas fréquent sur Glotelho sans symbole)
+            if val > 5000:
+                val = val * FCFA_TO_EURO
         
         return "{:,.2f} €".format(val)
     except Exception as e:

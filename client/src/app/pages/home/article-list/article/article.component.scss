@@ -65,60 +65,78 @@
       position: absolute;
       top: 12px;
       left: 12px;
-      background: white;
+      background: rgba(255, 255, 255, 0.9);
       border: none;
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       z-index: 5;
       color: #9ca3af;
+      backdrop-filter: blur(4px);
 
       i {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
       }
 
       &:hover {
-        transform: scale(1.1);
+        transform: scale(1.15);
         color: #ef4444;
+        background: white;
       }
 
       &.active {
-        color: #ef4444;
+        color: #ef4444 !important; // Rouge pour favori actif comme demandé
         background: white;
 
         i {
-          animation: heartBeat 0.3s ease-in-out;
+          animation: heartBeat 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
       }
+    }
+
+    .price-drop-badge {
+      position: absolute;
+      top: 55px;
+      left: 12px;
+      background: #10b981;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 5;
     }
 
     .history-btn {
       position: absolute;
       top: 12px;
-      left: 50px;
-      background: white;
+      right: 12px; // Déplacé à droite pour équilibrer
+      background: rgba(255, 255, 255, 0.9);
       border: none;
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       transition: all 0.2s ease;
       z-index: 5;
       color: #9ca3af;
+      backdrop-filter: blur(4px);
 
       &:hover {
-        transform: scale(1.1);
+        transform: scale(1.15);
         color: #4632e2;
+        background: white;
       }
     }
   }
@@ -199,7 +217,7 @@
     .product-title {
       font-size: 0.95rem;
       font-weight: 700;
-      color: #000000;
+      color: #111827;
       margin: 0;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -209,17 +227,32 @@
       height: 2.8em;
     }
 
+    .price-container {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: -4px; // Rapproche du titre
+
+      .price-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #4632e2;
+        display: inline-block;
+      }
+
+      .old-price {
+        font-size: 0.9rem;
+        color: #9ca3af;
+        text-decoration: line-through;
+        font-weight: 500;
+      }
+    }
+
     .card-footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 4px;
-
-      .price-value {
-        font-size: 1.25rem;
-        font-weight: 800;
-        color: #4632e2;
-      }
+      margin-top: 0;
 
       .rating {
         display: flex;

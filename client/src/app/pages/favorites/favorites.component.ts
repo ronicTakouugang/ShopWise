@@ -21,6 +21,7 @@ export class FavoritesComponent implements OnInit {
   apiUrl = environment.apiUrl;
   loading: boolean = true;
   sortBy: string = 'date_added';
+  showComparisonPanel: boolean = false;
 
   constructor(private http: HttpClient, private toastService: ToastService) {}
 

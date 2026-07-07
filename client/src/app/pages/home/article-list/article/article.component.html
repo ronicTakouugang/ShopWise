@@ -9,6 +9,9 @@
     <button class="favorite-btn" [class.active]="isFavorite" (click)="toggleFavorite($event)" *ngIf="authService.isAuth">
       <i class="pi" [ngClass]="isFavorite ? 'pi-heart-fill' : 'pi-heart'"></i>
     </button>
+    <div class="price-drop-badge" *ngIf="article.oldPrice && isFavorite">
+      BAISSE !
+    </div>
     <button class="history-btn" (click)="toggleHistory($event)" title="Historique des prix">
       <i class="pi pi-chart-line"></i>
     </button>
@@ -39,8 +42,12 @@
       {{article.description}}
     </h3>
 
-    <div class="card-footer">
+    <div class="price-container">
       <span class="price-value">{{article.price}}</span>
+      <span class="old-price" *ngIf="article.oldPrice && article.oldPrice !== 'N/A'">{{article.oldPrice}}</span>
+    </div>
+
+    <div class="card-footer">
       <div class="rating" *ngIf="article.rating && article.rating !== 'No Rating'">
         <span class="stars">★</span>
         <span class="rating-value">{{article.rating}}</span>

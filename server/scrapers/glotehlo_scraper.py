@@ -59,6 +59,13 @@ def scrape_glotelho(search_term, max_pages=3):
                 popularity = doc.get("popularity", 0) or doc.get("views_count", 0)
 
                 price = convert_to_euro(price_raw) if price_raw != "N/A" else "N/A"
+                old_price = convert_to_euro(old_price_raw) if old_price_raw != "N/A" else "N/A"
+
+                # Sécurité supplémentaire : s'il reste "FCFA" ou "CFA" après conversion (erreur potentielle)
+                if isinstance(price, str) and ("FCFA" in price or "CFA" in price):
+                    price = convert_to_euro(price)
+                if isinstance(old_price, str) and ("FCFA" in old_price or "CFA" in old_price):
+                    old_price = convert_to_euro(old_price)
 
                 key = product_url if product_url != "N/A" else title
 
@@ -67,7 +74,7 @@ def scrape_glotelho(search_term, max_pages=3):
                     records.append({
                         "description": title,
                         "price": price,
-                        "oldPrice": old_price_raw,
+                        "oldPrice": old_price,
                         "popularity": popularity,
                         "productURL": product_url,
                         "imageURL": image_url,
