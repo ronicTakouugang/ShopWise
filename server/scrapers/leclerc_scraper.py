@@ -25,7 +25,7 @@ def _get_session():
 
 
 def _api_headers():
-    headers = get_robust_headers()
+    headers = get_robust_headers(accept_language="fr-FR,fr;q=0.9,en-US;q=0.7,en;q=0.5")
     headers.update({
         "Content-Type": "application/json",
         "Accept": "application/json, text/plain, */*",

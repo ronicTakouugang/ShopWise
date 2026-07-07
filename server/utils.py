@@ -3,70 +3,76 @@ import logging
 import random
 import time
 from curl_cffi import requests as curl_requests
-from fake_useragent import UserAgent
 from deep_translator import GoogleTranslator
 
-ua = UserAgent()
-
-def get_robust_headers():
-    """Génère des headers complets et variés pour imiter un vrai navigateur."""
-    user_agent = ua.random
-    headers = {
-        "User-Agent": user_agent,
+def get_robust_headers(accept_language: str = "en-US,en;q=0.9"):
+    """
+    Génère des headers complets pour imiter un vrai navigateur.
+    Pas de User-Agent ici : curl_cffi l'injecte automatiquement en cohérence avec le
+    paramètre `impersonate` (ex: chrome120). Le fixer nous-mêmes avec un UA aléatoire
+    (potentiellement mobile/Safari/vieux Chrome) alors que l'empreinte TLS reste figée
+    sur Chrome 120 crée une incohérence facilement détectable par les anti-bots.
+    """
+    return {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Language": accept_language,
         "Accept-Encoding": "gzip, deflate, br",
         "DNT": "1",
         "Connection": "keep-alive",
         "Upgrade-Insecure-Requests": "1",
     }
-    # On évite les referers qui pourraient trahir une origine non-US pour Walmart
-    # headers["Referer"] = random.choice(referers) 
-    return headers
 
-def robust_request(url, method="GET", impersonate="chrome120", timeout=30, max_retries=3, **kwargs):
-    """Effectue une requête HTTP robuste en utilisant curl_cffi pour l'empreinte TLS."""
-    for attempt in range(max_retries):
-        try:
-            # Délai aléatoire plus long pour simuler l'humain
-            if attempt > 0:
-                wait_time = random.uniform(5, 10)
-                logging.info(f"⏳ Attente de {wait_time:.2f}s avant tentative {attempt+1}...")
-                time.sleep(wait_time)
-            else:
-                time.sleep(random.uniform(1, 3))
+def robust_request(url, method="GET", impersonate="chrome120", timeout=30, max_retries=3, accept_language="en-US,en;q=0.9", **kwargs):
+    """
+    Effectue une requête HTTP robuste en utilisant curl_cffi pour l'empreinte TLS.
+    Réutilise une même session (donc les mêmes cookies et la même connexion) entre les
+    tentatives d'un même appel : un vrai navigateur qui réessaie garde son identité, il
+    n'apparaît pas comme un nouveau visiteur à chaque retry.
+    """
+    custom_headers = kwargs.pop('headers', None)
+    headers = get_robust_headers(accept_language)
+    if custom_headers:
+        headers.update(custom_headers)
 
-            headers = get_robust_headers()
-            
-            # On fusionne les headers fournis dans kwargs s'il y en a
-            if 'headers' in kwargs:
-                headers.update(kwargs.pop('headers'))
-            
-            response = curl_requests.request(
-                method=method,
-                url=url,
-                headers=headers,
-                impersonate=impersonate,
-                timeout=timeout,
-                **kwargs
-            )
-            
-            if response.status_code == 200:
-                # Vérification sommaire si on est bloqué par un CAPTCHA ou page vide
-                content_len = len(response.content)
-                if content_len < 1000:
-                    logging.warning(f"⚠️ Réponse suspecte (trop courte: {content_len} bytes) pour {url}")
-                return response
-            elif response.status_code == 403:
-                logging.warning(f"🚫 Accès refusé (403) pour {url}. Tentative {attempt+1}/{max_retries}")
-            elif response.status_code == 429:
-                logging.warning(f"⏳ Rate limited (429) pour {url}. Tentative {attempt+1}/{max_retries}")
-            else:
-                logging.error(f"❌ Erreur HTTP {response.status_code} pour {url}")
-                
-        except Exception as e:
-            logging.error(f"❌ Exception lors de la requête vers {url} : {e}")
-            
+    session = curl_requests.Session()
+    try:
+        for attempt in range(max_retries):
+            try:
+                # Délai aléatoire plus long pour simuler l'humain
+                if attempt > 0:
+                    wait_time = random.uniform(5, 10)
+                    logging.info(f"⏳ Attente de {wait_time:.2f}s avant tentative {attempt+1}...")
+                    time.sleep(wait_time)
+                else:
+                    time.sleep(random.uniform(1, 3))
+
+                response = session.request(
+                    method=method,
+                    url=url,
+                    headers=headers,
+                    impersonate=impersonate,
+                    timeout=timeout,
+                    **kwargs
+                )
+
+                if response.status_code == 200:
+                    # Vérification sommaire si on est bloqué par un CAPTCHA ou page vide
+                    content_len = len(response.content)
+                    if content_len < 1000:
+                        logging.warning(f"⚠️ Réponse suspecte (trop courte: {content_len} bytes) pour {url}")
+                    return response
+                elif response.status_code == 403:
+                    logging.warning(f"🚫 Accès refusé (403) pour {url}. Tentative {attempt+1}/{max_retries}")
+                elif response.status_code == 429:
+                    logging.warning(f"⏳ Rate limited (429) pour {url}. Tentative {attempt+1}/{max_retries}")
+                else:
+                    logging.error(f"❌ Erreur HTTP {response.status_code} pour {url}")
+
+            except Exception as e:
+                logging.error(f"❌ Exception lors de la requête vers {url} : {e}")
+    finally:
+        session.close()
+
     return None
 
 def normalize_text(text: str) -> str:

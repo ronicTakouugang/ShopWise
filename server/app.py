@@ -4,6 +4,8 @@ import random
 import math
 import smtplib
 import re
+import time
+import threading
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 from email.mime.text import MIMEText
@@ -278,6 +280,37 @@ def do_search(query: str) -> list:
         logging.error("Erreur lors du tri des résultats : %s", e)
         # En cas d'erreur de tri, retourner les résultats non triés mais fonctionnels
         return filtered_results
+
+
+#########################
+# Cache court des résultats de recherche
+#########################
+# Réduit le nombre de requêtes réellement envoyées aux sites pour des recherches
+# identiques/répétées (moins de volume = moins de risque de blocage), sans jamais
+# ralentir une recherche : un cache "hit" est immédiat, un "miss" se comporte
+# exactement comme avant.
+SEARCH_CACHE_TTL_SECONDS = 600  # 10 minutes
+_search_cache = {}
+_search_cache_lock = threading.Lock()
+
+
+def do_search_cached(query: str) -> list:
+    """Sert les résultats depuis un cache court si disponible, sinon lance do_search."""
+    cache_key = normalize_text(query)
+    now = time.time()
+
+    with _search_cache_lock:
+        cached = _search_cache.get(cache_key)
+        if cached and (now - cached[0]) < SEARCH_CACHE_TTL_SECONDS:
+            logging.info("Résultats servis depuis le cache pour '%s'.", query)
+            return cached[1]
+
+    results = do_search(query)
+
+    with _search_cache_lock:
+        _search_cache[cache_key] = (now, results)
+
+    return results
 
 
 #########################
@@ -619,19 +652,25 @@ def forgot_password():
 
 
 def mark_favorites(results: list, email: str | None) -> list:
-    """Ajoute isFavorite=True aux résultats déjà présents dans les favoris de l'utilisateur."""
-    if not email or not results:
-        return results
+    """
+    Retourne une copie des résultats avec isFavorite=True pour ceux déjà en favoris.
+    On copie chaque enregistrement (au lieu de muter les objets reçus) car `results`
+    peut être la liste partagée par le cache de recherche : sans copie, le marquage
+    des favoris d'un utilisateur fuiterait vers les autres utilisateurs via le cache.
+    """
+    copies = [dict(r) for r in results]
+    if not email:
+        return copies
     try:
         with sqlite3.connect("subscriptions.db") as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT productURL FROM favorites WHERE email = ?", (email,))
             favorite_urls = {row[0] for row in cursor.fetchall()}
-        for record in results:
+        for record in copies:
             record["isFavorite"] = record.get("productURL") in favorite_urls
     except Exception as e:
         logging.error("Erreur lors du marquage des favoris: %s", e)
-    return results
+    return copies
 
 
 #########################
@@ -648,7 +687,7 @@ def search():
         return jsonify({"error": "Veuillez fournir un mot-clé via le paramètre 'query'."}), 400
     session["last_search_query"] = query
     try:
-        results = do_search(query)
+        results = do_search_cached(query)
         results = mark_favorites(results, session.get("email"))
         logging.info("Recherche '%s' retournant %d résultats.", query, len(results))
         return jsonify(results)
@@ -674,7 +713,7 @@ def subscribe():
     if not query or not email:
         return jsonify({"error": "L'email en session et le query en paramètre sont requis (login et query requis)."}), 400
     try:
-        results = do_search(query)
+        results = do_search_cached(query)
         if not results:
             return jsonify({"message": "Aucun produit trouvé pour la requête."}), 404
 

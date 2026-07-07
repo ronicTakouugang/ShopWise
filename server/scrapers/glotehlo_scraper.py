@@ -16,7 +16,10 @@ def fetch_page(search_term, page, limit=40):
     }
     logging.info(f"🌐 Récupération page {page} via l'API pour '{search_term}'")
 
-    response = robust_request(SEARCH_API_URL, method="POST", json=payload)
+    response = robust_request(
+        SEARCH_API_URL, method="POST", json=payload,
+        accept_language="fr-FR,fr;q=0.9,en-US;q=0.7,en;q=0.5"
+    )
     if response and response.status_code == 200:
         try:
             return response.json()
