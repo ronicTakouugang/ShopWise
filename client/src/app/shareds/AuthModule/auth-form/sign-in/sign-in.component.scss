@@ -12,25 +12,34 @@
 }
 
 .auth-header {
-  background: linear-gradient(135deg, #4632e2 0%, #3a28c4 100%);
+  background: white;
   padding: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: relative;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .auth-logo {
-  color: white;
+  font-family: "Knewave", serif;
+  color: #4632e2;
   font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.5px;
 }
 
+#shop {
+  font-family: "Engagement", serif;
+  font-weight: 400;
+  color: #262626;
+  margin-right: 2px;
+}
+
 .close-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: #f3f4f6;
   border: none;
-  color: white;
+  color: #6b7280;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -41,7 +50,8 @@
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: #e5e7eb;
+    color: #111827;
     transform: rotate(90deg);
   }
 }
