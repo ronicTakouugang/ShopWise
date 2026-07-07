@@ -24,19 +24,35 @@
       padding: 0 0.75rem;
     }
   }
+  .history-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 0.25rem 0.5rem;
+
+    .clear-all {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+
+      &:hover {
+        color: #dc2626;
+        text-decoration: underline;
+      }
+    }
+  }
   .histor--elem{
     width: 100% !important;
-    max-height: 100px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding: 10px 12px;
+    padding: 8px 8px 8px 12px;
     margin: 4px 0 !important;
     border-radius: 8px;
     display: flex;
     align-items: center;
     gap: 10px;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease;
     color: #4b5563;
     font-weight: 500;
     cursor: pointer;
@@ -44,10 +60,82 @@
     &:hover {
       background: #f3f4f6;
       color: #1f2937;
+
+      .histor--actions {
+        opacity: 1;
+        pointer-events: auto;
+      }
     }
 
-    .p-checkbox {
-      transform: scale(0.9);
+    .histor--icon {
+      flex: none;
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+
+    .histor--main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+
+      .search-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .search-time {
+        font-size: 0.72rem;
+        font-weight: 400;
+        color: #9ca3af;
+      }
+    }
+
+    .histor--actions {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+
+      .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 0.8rem;
+
+        &:hover {
+          background: #e5e7eb;
+          color: #1f2937;
+        }
+      }
+
+      .notify-btn.active {
+        color: #f59e0b;
+        opacity: 1;
+        pointer-events: auto;
+
+        &:hover {
+          background: #fef3c7;
+          color: #d97706;
+        }
+      }
+
+      .delete-btn:hover {
+        background: #fee2e2;
+        color: #dc2626;
+      }
     }
   }
   .p-panel{

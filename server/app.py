@@ -437,10 +437,15 @@ def create_list():
 
 @app.route('/lists/<int:list_id>/items', methods=['POST'])
 def add_to_list(list_id):
+    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
+    email = session['email']
     productURL = request.json.get('productURL')
     try:
         with sqlite3.connect("subscriptions.db") as conn:
             cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM favorite_lists WHERE id = ? AND email = ?", (list_id, email))
+            if not cursor.fetchone():
+                return jsonify({"error": "Liste introuvable."}), 404
             cursor.execute("INSERT INTO favorite_list_items (list_id, productURL) VALUES (?, ?)", (list_id, productURL))
             conn.commit()
             return jsonify({"message": "Ajouté à la liste"})
@@ -681,11 +686,14 @@ def send_email_alert(email: str, product_url: str, current_price: float) -> None
     Envoie un email d'alerte lorsque le prix d'un produit a baissé.
     Utilise le serveur SMTP de Sendinblue.
     """
-    smtp_server = "smtp-relay.sendinblue.com"
-    smtp_port = 587
-    smtp_username = "gunwaterco@gmail.com"
-    smtp_password = "JmYtx390OGUBzWgn"
-    from_email = "shopwise@gmail.com"
+    smtp_server = os.getenv("SMTP_SERVER")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_username = os.getenv("SMTP_USERNAME")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    from_email = os.getenv("SMTP_FROM_EMAIL")
+    if not all([smtp_server, smtp_username, smtp_password, from_email]):
+        logging.error("Configuration SMTP manquante : impossible d'envoyer l'email d'alerte.")
+        return
     subject = "Alerte: Le prix de votre produit a baissé!"
     body = (f"Bonjour,\n\nLe prix de l'article suivant a baissé : {product_url}\n"
             f"Nouveau prix : {format_price(current_price)}\n\nCordialement,\nVotre équipe")

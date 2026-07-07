@@ -64,9 +64,11 @@ export class NavCmpComponent implements OnInit {
   }
 
   ngOnInit() {
-    if (this.authSer.isAuth) {
-      this.loadNotifications();
-    }
+    this.authSer.whenAuthChecked().subscribe(isAuth => {
+      if (isAuth) {
+        this.loadNotifications();
+      }
+    });
   }
 
   loadNotifications() {

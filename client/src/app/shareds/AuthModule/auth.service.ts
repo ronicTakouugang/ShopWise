@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import {HttpClient} from '@angular/common/http';
-import {catchError, tap, throwError, timeout} from 'rxjs';
+import {catchError, map, Observable, of, shareReplay, tap, throwError, timeout} from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -11,24 +11,38 @@ export class AuthService {
   apiUrl = environment.apiUrl;
   username="";
   isAuth:boolean=false;
+  private authCheck$: Observable<boolean>;
+
   constructor(private http:HttpClient) {
-    this.checkAuthStatus();
+    this.authCheck$ = this.checkAuthStatus();
+    this.authCheck$.subscribe();
   }
 
-  checkAuthStatus() {
-    this.http.get<{isAuth: boolean, email?: string}>(`${this.apiUrl}/status`, { withCredentials: true })
-      .subscribe({
-        next: (res) => {
+  checkAuthStatus(): Observable<boolean> {
+    return this.http.get<{isAuth: boolean, email?: string}>(`${this.apiUrl}/status`, { withCredentials: true })
+      .pipe(
+        map(res => {
           if (res.isAuth && res.email) {
             this.isAuth = true;
             this.username = res.email;
             console.log("Session restaurée pour :", res.email);
+          } else {
+            this.isAuth = false;
           }
-        },
-        error: (err) => {
+          return this.isAuth;
+        }),
+        catchError(() => {
           console.log("Pas de session active.");
-        }
-      });
+          this.isAuth = false;
+          return of(false);
+        }),
+        shareReplay(1)
+      );
+  }
+
+  /** Émet une seule fois que le statut d'authentification initial a été déterminé. */
+  whenAuthChecked(): Observable<boolean> {
+    return this.authCheck$;
   }
 
   signIn(email:string, password:string){
@@ -46,7 +60,7 @@ export class AuthService {
       tap(data =>{
         console.log("Login réussi: ", data);
         this.isAuth=true;
-        this.username=email;
+        this.username=cleanEmail;
       }),
       catchError((err: any) => {
         console.error("Erreur login :", err)
@@ -70,7 +84,7 @@ export class AuthService {
       tap(data =>{
         console.log("Inscription réussie: ", data);
         this.isAuth=true;
-        this.username=email;
+        this.username=cleanEmail;
       }),
       catchError((err: any) => {
         console.error("Erreur inscription :", err)

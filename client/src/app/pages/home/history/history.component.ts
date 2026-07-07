@@ -1,9 +1,7 @@
 import {Component, CUSTOM_ELEMENTS_SCHEMA, Input, OnInit} from '@angular/core';
 import {Panel} from 'primeng/panel';
 import {AuthService} from '../../../shareds/AuthModule/auth.service';
-import {Checkbox} from 'primeng/checkbox';
 import {Histor} from './services/histor';
-import {FormsModule} from '@angular/forms';
 import {HistoryService} from './services/history.service';
 import {SearchComponent} from '../search/search.component';
 
@@ -11,9 +9,7 @@ import {SearchComponent} from '../search/search.component';
 @Component({
   selector: 'app-history',
   imports: [
-    Panel,
-    Checkbox,
-    FormsModule
+    Panel
   ],
   templateUrl: './history.component.html',
   standalone: true,
@@ -30,11 +26,32 @@ export class HistoryComponent implements OnInit{
   ngOnInit() {
   }
 
-  save(histor: Histor) {
-    this.historyService.saveToLocal(); // Sauvegarder l'état de la checkbox localement
-    if(histor.notifications)
+  toggleNotifications(histor: Histor) {
+    histor.notifications = !histor.notifications;
+    this.historyService.saveToLocal();
+    if (histor.notifications)
       this.historyService.save(histor).subscribe();
   }
 
-  protected readonly history = history;
+  remove(histor: Histor) {
+    this.historyService.remove(histor.id);
+  }
+
+  clear() {
+    this.historyService.clearHistory();
+  }
+
+  relativeTime(id: number): string {
+    const diffMs = Date.now() - id;
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return 'à l\'instant';
+    if (minutes < 60) return `il y a ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `il y a ${hours} h`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'hier';
+    if (days < 7) return `il y a ${days} j`;
+    const weeks = Math.floor(days / 7);
+    return `il y a ${weeks} sem`;
+  }
 }

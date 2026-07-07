@@ -6,20 +6,20 @@ import {Subject} from 'rxjs';
 })
 export class LoaderService {
 
-  private isLoading: boolean = false;
+  private activeRequests: number = 0;
   public loadingSubject: Subject<boolean> = new Subject;
 
   constructor() { }
 
   startLoading(){
-    this.isLoading = true;
+    this.activeRequests++;
     this.next();
   }
   stopLoading(){
-    this.isLoading = false;
+    this.activeRequests = Math.max(0, this.activeRequests - 1);
     this.next();
   }
   next(){
-    this.loadingSubject.next(this.isLoading);
+    this.loadingSubject.next(this.activeRequests > 0);
   }
 }

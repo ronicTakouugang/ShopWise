@@ -26,10 +26,9 @@ export class ArticleService {
   }
 
   findProduct(product:string){
-    let params = new HttpParams();
-    params.set('query',product);
+    const params = new HttpParams().set('query', product);
     console.log("find2",product);
-    return this.http.get<Article[]>(`${this.apiUrl}/search?query=${product}`).pipe(
+    return this.http.get<Article[]>(`${this.apiUrl}/search`, { params }).pipe(
       timeout(25000),
       tap(data =>{
         console.log("find3");

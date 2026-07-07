@@ -1,14 +1,14 @@
 import { Routes, Router } from '@angular/router';
 import { inject } from '@angular/core';
+import { map } from 'rxjs';
 import { AuthService } from './shareds/AuthModule/auth.service';
 
 const authGuard = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
-  if (authService.isAuth) {
-    return true;
-  }
-  return router.parseUrl('/home');
+  return authService.whenAuthChecked().pipe(
+    map(isAuth => isAuth ? true : router.parseUrl('/home'))
+  );
 };
 
 export const routes: Routes = [
