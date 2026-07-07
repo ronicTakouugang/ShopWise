@@ -6,6 +6,17 @@
     </button>
     <h1>Mes Favoris</h1>
     <p>Retrouvez ici tous les produits que vous avez mis de côté.</p>
+
+    <div class="controls" *ngIf="!loading && favorites.length > 0">
+      <div class="sort-control">
+        <label for="sort">Trier par :</label>
+        <select id="sort" [(ngModel)]="sortBy" (change)="onSortChange()">
+          <option value="date_added">Date d'ajout</option>
+          <option value="price_asc">Prix croissant</option>
+          <option value="price_desc">Prix décroissant</option>
+        </select>
+      </div>
+    </div>
   </div>
 
   <div *ngIf="loading" class="loading-state">
@@ -21,6 +32,24 @@
   </div>
 
   <div class="favorites-grid" *ngIf="!loading && favorites.length > 0">
-    <app-article *ngFor="let article of favorites" [article]="article"></app-article>
+    <div class="favorite-item-wrapper" *ngFor="let article of favorites">
+      <app-article [article]="article" (favoriteChanged)="onFavoriteChanged(article, $event)"></app-article>
+      <button class="compare-checkbox-btn" [class.selected]="isComparing(article)" (click)="toggleCompare(article)">
+        {{ isComparing(article) ? 'Prêt pour comparaison' : 'Comparer' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="comparison-panel" *ngIf="compareList.length >= 2">
+    <h3>Comparaison rapide</h3>
+    <div class="comparison-grid">
+      <div class="comparison-column" *ngFor="let item of compareList">
+        <img [src]="item.imageURL" [alt]="item.description">
+        <p class="title">{{item.description}}</p>
+        <p class="price">{{item.price}}</p>
+        <p class="source">{{item.source}}</p>
+        <button (click)="toggleCompare(item)">Retirer</button>
+      </div>
+    </div>
   </div>
 </div>

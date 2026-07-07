@@ -8,11 +8,15 @@ import {HttpResponse} from '@angular/common/http';
 })
 export class ToastService {
 
-  constructor(private messageService: MessageService) { }
+  constructor(public messageService: MessageService) { }
 
   showSuccess() {
     console.log("showSuccess");
     this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Opération réussie' });
+  }
+
+  showSuccessCustom(detail: string, summary: string = 'Succès') {
+    this.messageService.add({ severity: 'success', summary: summary, detail: detail });
   }
 
   showInfo(response:HttpResponse<any>) {

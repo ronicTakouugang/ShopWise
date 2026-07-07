@@ -1,4 +1,4 @@
-import {Component, CUSTOM_ELEMENTS_SCHEMA, EventEmitter, Output} from '@angular/core';
+import {Component, CUSTOM_ELEMENTS_SCHEMA, EventEmitter, Output, OnInit} from '@angular/core';
 import {Button} from 'primeng/button';
 import {Toolbar} from 'primeng/toolbar';
 import {AuthService} from '../AuthModule/auth.service';
@@ -6,8 +6,12 @@ import {HistoryService} from '../../pages/home/history/services/history.service'
 import {Avatar} from 'primeng/avatar';
 import {Menu} from 'primeng/menu';
 import {MenuItem} from 'primeng/api';
+import {BadgeModule} from 'primeng/badge';
+import {Badge} from 'primeng/badge';
 import {CommonModule} from '@angular/common';
 import {Router} from '@angular/router';
+import {HttpClient} from '@angular/common/http';
+import {environment} from '../../../environments/environment';
 
 @Component({
   selector: 'app-nav-cmp',
@@ -16,14 +20,18 @@ import {Router} from '@angular/router';
     Toolbar,
     Avatar,
     Menu,
-    CommonModule
+    CommonModule,
+    BadgeModule,
+    Badge
   ],
   templateUrl: './nav-cmp.component.html',
   standalone: true,
   styleUrl: './nav-cmp.component.scss',
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
-export class NavCmpComponent {
+export class NavCmpComponent implements OnInit {
+  notifications: any[] = [];
+  apiUrl = environment.apiUrl;
 
   userMenuItems: MenuItem[] = [
     {
@@ -52,7 +60,20 @@ export class NavCmpComponent {
     }
   ];
 
-  constructor(public authSer:AuthService, private router: Router, private historyService: HistoryService) {
+  constructor(public authSer:AuthService, public router: Router, private historyService: HistoryService, private http: HttpClient) {
+  }
+
+  ngOnInit() {
+    if (this.authSer.isAuth) {
+      this.loadNotifications();
+    }
+  }
+
+  loadNotifications() {
+    this.http.get<any[]>(`${this.apiUrl}/notifications`, { withCredentials: true })
+      .subscribe(data => {
+        this.notifications = data;
+      });
   }
 
   @Output()

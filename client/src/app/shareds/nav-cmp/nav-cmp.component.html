@@ -17,6 +17,15 @@
       </div>
     } @else {
       <div class="user-actions">
+        <!-- Badge de notifications -->
+        <div class="notification-badge-container" (click)="router.navigate(['/favorites'])" title="Voir mes alertes">
+          <i class="pi pi-bell notification-icon">
+            @if (notifications.length > 0) {
+              <p-badge [value]="notifications.length.toString()" severity="danger"></p-badge>
+            }
+          </i>
+        </div>
+
         <div class="user-info" (click)="menu.toggle($event)">
           <div class="text-info">
             <span class="welcome-text">Bienvenue,</span>

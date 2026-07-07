@@ -3,7 +3,7 @@ import { Histor } from './histor';
 import { HttpClient } from '@angular/common/http';
 import { catchError, tap, throwError, timeout } from 'rxjs';
 
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'

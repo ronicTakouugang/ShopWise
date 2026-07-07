@@ -37,6 +37,36 @@
   align-items: center;
   gap: 15px;
   margin-right: 1rem;
+
+  .notification-badge-container {
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: #f1f3f5;
+    }
+
+    .notification-icon {
+      font-size: 1.25rem;
+      color: #6b7280;
+      position: relative;
+
+      ::ng-deep .p-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        min-width: 1.2rem;
+        height: 1.2rem;
+        line-height: 1.2rem;
+        font-size: 0.65rem;
+      }
+    }
+  }
 }
 
 .user-info {

@@ -1,7 +1,6 @@
 import {Component, CUSTOM_ELEMENTS_SCHEMA, Input, OnInit} from '@angular/core';
 import {Panel} from 'primeng/panel';
 import {AuthService} from '../../../shareds/AuthModule/auth.service';
-import {RadioButton} from 'primeng/radiobutton';
 import {Checkbox} from 'primeng/checkbox';
 import {Histor} from './services/histor';
 import {FormsModule} from '@angular/forms';
@@ -13,7 +12,6 @@ import {SearchComponent} from '../search/search.component';
   selector: 'app-history',
   imports: [
     Panel,
-    RadioButton,
     Checkbox,
     FormsModule
   ],

@@ -92,6 +92,40 @@ def init_db() -> None:
                     notifications_enabled INTEGER DEFAULT 1
                 )
             """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS price_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    productURL TEXT,
+                    price REAL,
+                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS favorite_lists (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT,
+                    name TEXT,
+                    UNIQUE(email, name)
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS favorite_list_items (
+                    list_id INTEGER,
+                    productURL TEXT,
+                    FOREIGN KEY(list_id) REFERENCES favorite_lists(id) ON DELETE CASCADE,
+                    PRIMARY KEY(list_id, productURL)
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS in_app_notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT,
+                    message TEXT,
+                    productURL TEXT,
+                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_read INTEGER DEFAULT 0
+                )
+            """)
             conn.commit()
         logging.info("Base de données initialisée avec succès.")
     except Exception as e:
@@ -316,22 +350,114 @@ def logout():
 
 @app.route('/favorites', methods=['GET'])
 def get_favorites():
-    """Récupère les favoris de l'utilisateur."""
+    """Récupère les favoris de l'utilisateur avec support du tri."""
     if 'email' not in session:
         return jsonify({"error": "Non authentifié"}), 401
     
     email = session['email']
+    sort_by = request.args.get('sort', 'date_added') # default sort
+    
+    query = "SELECT * FROM favorites WHERE email = ?"
+    
+    # Le tri par date d'ajout n'est pas directement supporté car on n'a pas de colonne date_added
+    # On pourrait l'ajouter, mais pour l'instant on trie par ID (qui suit l'ordre d'ajout)
+    if sort_by == 'price_asc':
+        # Note: price est stocké sous forme de chaîne avec le symbole €, 
+        # il faudrait idéalement une colonne numérique pour un tri robuste.
+        # Pour l'instant on fait un tri simple.
+        query += " ORDER BY CAST(REPLACE(REPLACE(price, '€', ''), ',', '.') AS REAL) ASC"
+    elif sort_by == 'price_desc':
+        query += " ORDER BY CAST(REPLACE(REPLACE(price, '€', ''), ',', '.') AS REAL) DESC"
+    else:
+        query += " ORDER BY id DESC" # Date d'ajout (approximé par l'ID)
+
     try:
         with sqlite3.connect("subscriptions.db") as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM favorites WHERE email = ?", (email,))
+            cursor.execute(query, (email,))
             rows = cursor.fetchall()
             favorites = [dict(row) for row in rows]
             return jsonify(favorites)
     except Exception as e:
         logging.error("Erreur lors de la récupération des favoris: %s", e)
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/price_history', methods=['GET'])
+def get_price_history():
+    """Récupère l'historique des prix pour un produit."""
+    productURL = request.args.get('productURL')
+    if not productURL:
+        return jsonify({"error": "productURL requis"}), 400
+    
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT price, date 
+                FROM price_history 
+                WHERE productURL = ? 
+                ORDER BY date ASC
+            """, (productURL,))
+            rows = cursor.fetchall()
+            return jsonify([dict(row) for row in rows])
+    except Exception as e:
+        logging.error("Erreur lors de la récupération de l'historique: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/lists', methods=['GET'])
+def get_lists():
+    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
+    email = session['email']
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM favorite_lists WHERE email = ?", (email,))
+            return jsonify([dict(row) for row in cursor.fetchall()])
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+
+@app.route('/lists', methods=['POST'])
+def create_list():
+    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
+    email = session['email']
+    name = request.json.get('name')
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO favorite_lists (email, name) VALUES (?, ?)", (email, name))
+            conn.commit()
+            return jsonify({"id": cursor.lastrowid, "name": name})
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+
+@app.route('/lists/<int:list_id>/items', methods=['POST'])
+def add_to_list(list_id):
+    productURL = request.json.get('productURL')
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO favorite_list_items (list_id, productURL) VALUES (?, ?)", (list_id, productURL))
+            conn.commit()
+            return jsonify({"message": "Ajouté à la liste"})
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+
+@app.route('/notifications', methods=['GET'])
+def get_notifications():
+    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
+    email = session['email']
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM in_app_notifications WHERE email = ? ORDER BY date DESC", (email,))
+            return jsonify([dict(row) for row in cursor.fetchall()])
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
 
 @app.route('/favorites', methods=['POST'])
@@ -360,6 +486,12 @@ def add_favorite():
                 data.get('rating'), 
                 data.get('reviewCount')
             ))
+            
+            # Ajouter à l'historique des prix lors de l'ajout en favori
+            num_price = extract_price(str(data.get('price')))
+            if num_price != float('inf'):
+                cursor.execute("INSERT INTO price_history (productURL, price) VALUES (?, ?)", (data.get('productURL'), num_price))
+            
             conn.commit()
         return jsonify({"message": "Favori ajouté avec succès."})
     except Exception as e:
@@ -577,8 +709,7 @@ def send_email_alert(email: str, product_url: str, current_price: float) -> None
 def run_price_check() -> list:
     """
     Vérifie si le prix des produits abonnés a baissé.
-    Envoie un email d'alerte et met à jour la BDD pour chaque produit concerné.
-    Retourne la liste des alertes déclenchées.
+    Envoie un email d'alerte, une notification in-app et met à jour la BDD.
     """
     try:
         with sqlite3.connect("subscriptions.db") as conn:
@@ -589,8 +720,21 @@ def run_price_check() -> list:
             for sub in subscriptions:
                 sub_id, product_url, baseline_price, email = sub
                 current_price = get_current_price(product_url)
+                
+                # Enregistrer systématiquement dans l'historique
+                cursor.execute("INSERT INTO price_history (productURL, price) VALUES (?, ?)", (product_url, current_price))
+                
                 if current_price < baseline_price:
+                    # Alerte Email
                     send_email_alert(email, product_url, current_price)
+                    
+                    # Alerte In-App
+                    message = f"Le prix du produit a baissé à {format_price(current_price)} !"
+                    cursor.execute("""
+                        INSERT INTO in_app_notifications (email, message, productURL)
+                        VALUES (?, ?, ?)
+                    """, (email, message, product_url))
+                    
                     alerts_triggered.append({
                         "subscription_id": sub_id,
                         "email": email,
