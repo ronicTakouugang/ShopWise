@@ -8,24 +8,32 @@
     margin-bottom: 2rem;
 
     .back-btn {
-      display: flex;
+      position: sticky;
+      top: 1rem;
+      z-index: 1001;
+      display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: none;
-      border: none;
-      color: #4632e2;
+      background: #4632e2;
+      border: 1px solid #4632e2;
+      color: white;
       font-weight: 600;
       cursor: pointer;
-      padding: 0;
-      margin-bottom: 1rem;
-      transition: transform 0.2s ease;
+      padding: 0.6rem 1.2rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(70, 50, 226, 0.2);
 
       &:hover {
-        transform: translateX(-4px);
+        transform: translateY(-2px);
+        background: #3626af;
+        border-color: #3626af;
+        box-shadow: 0 6px 16px rgba(70, 50, 226, 0.3);
       }
 
       i {
-        font-size: 0.9rem;
+        font-size: 1rem;
       }
     }
 

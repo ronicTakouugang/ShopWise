@@ -31,6 +31,15 @@ export class SignInComponent {
 
   email: string = "";
   password: string = "";
+
+  isValidEmail(): boolean {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(this.email);
+  }
+
+  isValidPassword(): boolean {
+    return this.password.length >= 6;
+  }
   constructor(private authService:AuthService, private toastService: ToastService) {
   }
 
@@ -58,6 +67,7 @@ export class SignInComponent {
           this.loading = false;
           this.toastService.showSuccess();
           this.closeModal();
+          window.location.reload(); // Recharger pour rafraîchir l'état d'authentification
         }
       ),
       catchError((err: any) => {

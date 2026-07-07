@@ -2,7 +2,7 @@ import {Component, CUSTOM_ELEMENTS_SCHEMA, Input} from '@angular/core';
 import {Article} from '../service/article';
 import {CommonModule} from '@angular/common';
 import {HttpClient} from '@angular/common/http';
-import {environment} from '../../../../../environments/environment';
+import {environment} from '../../../../environments/environment';
 import {AuthService} from '../../../../shareds/AuthModule/auth.service';
 
 @Component({

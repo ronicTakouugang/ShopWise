@@ -2,6 +2,7 @@ import {Component, CUSTOM_ELEMENTS_SCHEMA, EventEmitter, Output} from '@angular/
 import {Button} from 'primeng/button';
 import {Toolbar} from 'primeng/toolbar';
 import {AuthService} from '../AuthModule/auth.service';
+import {HistoryService} from '../../pages/home/history/services/history.service';
 import {Avatar} from 'primeng/avatar';
 import {Menu} from 'primeng/menu';
 import {MenuItem} from 'primeng/api';
@@ -51,7 +52,7 @@ export class NavCmpComponent {
     }
   ];
 
-  constructor(public authSer:AuthService, private router: Router) {
+  constructor(public authSer:AuthService, private router: Router, private historyService: HistoryService) {
   }
 
   @Output()
@@ -68,6 +69,23 @@ export class NavCmpComponent {
   }
 
   signOut() {
-    this.authSer.signOut().subscribe();
+    this.authSer.signOut().subscribe({
+      next: () => {
+        // On ne vide plus l'historique local à la déconnexion pour qu'il persiste
+        // this.historyService.clearHistory();
+        this.router.navigate(['/home']).then(() => {
+          // Utiliser reload si nécessaire pour réinitialiser complètement l'état de l'application
+          // ou s'assurer que tous les services sont au courant du changement d'état.
+          window.location.reload();
+        });
+      },
+      error: () => {
+        // Même en cas d'erreur côté serveur, on redirige et on reset l'état local
+        this.authSer.isAuth = false;
+        this.router.navigate(['/home']).then(() => {
+          window.location.reload();
+        });
+      }
+    });
   }
 }

@@ -42,7 +42,7 @@
         </div>
       </div>
 
-      <p-button label="Confirmer" [loading]="loading" [disabled]="!email || !password" (click)="signOn()" styleClass="auth-submit-btn"></p-button>
+      <p-button label="Confirmer" [loading]="loading" [disabled]="!isValidEmail() || !isValidPassword()" (click)="signOn()" styleClass="auth-submit-btn"></p-button>
 
       <div class="auth-footer">
         <span class="compte">Déjà un compte ? <a (click)="changeFormModal()" class="auth-link">Connexion</a></span>

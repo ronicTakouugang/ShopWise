@@ -2,10 +2,10 @@
   @if (authService.isAuth){
     <p-panel header="Historique" class="histor">
       <div class="history-list">
-        @for (histor of historyService.history; track histor.search){
+        @for (histor of historyService.history; track histor.id){
           <div class="histor--elem">
-            <p-checkbox [(ngModel)]="histor.notifications" [binary]="true" (ngModelChange)="save(histor)"/>
-            <span class="search-text">{{histor.search}}</span>
+            <p-checkbox [(ngModel)]="histor.notifications" [binary]="true" (ngModelChange)="save(histor)" (click)="$event.stopPropagation()"/>
+            <span class="search-text" (click)="searchCmp.find(histor.search)">{{histor.search}}</span>
           </div>
         } @empty {
           <div class="empty-history">

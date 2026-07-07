@@ -24,7 +24,7 @@
         <p-password class="auth-password" [(ngModel)]="password" placeholder="Mot de passe" [toggleMask]="true" [feedback]="false"></p-password>
       </div>
 
-      <p-button label="Confirmer" [loading]="loading" [disabled]="!email || !password" (click)="auth()" styleClass="auth-submit-btn"></p-button>
+      <p-button label="Confirmer" [loading]="loading" [disabled]="!isValidEmail() || !isValidPassword()" (click)="auth()" styleClass="auth-submit-btn"></p-button>
 
       <div class="auth-footer">
         <span class="compte">Pas de compte ? <a (click)="changeFormModal()" class="auth-link">Créer un compte</a></span>
