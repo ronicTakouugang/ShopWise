@@ -8,10 +8,19 @@ import {Menu} from 'primeng/menu';
 import {MenuItem} from 'primeng/api';
 import {BadgeModule} from 'primeng/badge';
 import {Badge} from 'primeng/badge';
+import {Popover} from 'primeng/popover';
 import {CommonModule} from '@angular/common';
 import {Router} from '@angular/router';
 import {HttpClient} from '@angular/common/http';
 import {environment} from '../../../environments/environment';
+
+interface AppNotification {
+  id: number;
+  message: string;
+  productURL: string;
+  date: string;
+  is_read: number;
+}
 
 @Component({
   selector: 'app-nav-cmp',
@@ -22,7 +31,8 @@ import {environment} from '../../../environments/environment';
     Menu,
     CommonModule,
     BadgeModule,
-    Badge
+    Badge,
+    Popover
   ],
   templateUrl: './nav-cmp.component.html',
   standalone: true,
@@ -30,8 +40,12 @@ import {environment} from '../../../environments/environment';
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class NavCmpComponent implements OnInit {
-  notifications: any[] = [];
+  notifications: AppNotification[] = [];
   apiUrl = environment.apiUrl;
+
+  get unreadCount(): number {
+    return this.notifications.filter(n => !n.is_read).length;
+  }
 
   userMenuItems: MenuItem[] = [
     {
@@ -72,10 +86,37 @@ export class NavCmpComponent implements OnInit {
   }
 
   loadNotifications() {
-    this.http.get<any[]>(`${this.apiUrl}/notifications`, { withCredentials: true })
+    this.http.get<AppNotification[]>(`${this.apiUrl}/notifications`, { withCredentials: true })
       .subscribe(data => {
         this.notifications = data;
       });
+  }
+
+  markAsRead() {
+    if (this.unreadCount === 0) return;
+    this.http.post(`${this.apiUrl}/notifications/read`, null, { withCredentials: true })
+      .subscribe(() => {
+        this.notifications = this.notifications.map(n => ({ ...n, is_read: 1 }));
+      });
+  }
+
+  openNotification(notification: AppNotification) {
+    if (notification.productURL) {
+      window.open(notification.productURL, '_blank');
+    }
+  }
+
+  relativeTime(dateStr: string): string {
+    const parsed = new Date(dateStr.replace(' ', 'T') + 'Z');
+    const diffMs = Date.now() - parsed.getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return 'à l\'instant';
+    if (minutes < 60) return `il y a ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `il y a ${hours} h`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'hier';
+    return `il y a ${days} j`;
   }
 
   @Output()

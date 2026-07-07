@@ -32,7 +32,7 @@ export class ArticleComponent {
   }
 
   ngOnInit() {
-    this.isFavorite = (this.article as any).isFavorite || false;
+    this.isFavorite = this.article.isFavorite || false;
   }
 
   goToUrl() {

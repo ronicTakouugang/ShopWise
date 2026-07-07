@@ -55,6 +55,7 @@
       font-size: 1.25rem;
       color: #6b7280;
       position: relative;
+      transition: color 0.2s ease;
 
       ::ng-deep .p-badge {
         position: absolute;
@@ -64,7 +65,117 @@
         height: 1.2rem;
         line-height: 1.2rem;
         font-size: 0.65rem;
+        box-shadow: 0 0 0 2px white;
       }
+    }
+
+    &.has-unread .notification-icon {
+      color: #4632e2;
+      animation: bellRing 2.5s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes bellRing {
+  0%, 92%, 100% { transform: rotate(0); }
+  93% { transform: rotate(-12deg); }
+  94% { transform: rotate(10deg); }
+  95% { transform: rotate(-8deg); }
+  96% { transform: rotate(6deg); }
+  97% { transform: rotate(0); }
+}
+
+:host ::ng-deep {
+  .p-popover {
+    .p-popover-content {
+      padding: 0;
+    }
+  }
+
+  .notif-panel {
+    width: 320px;
+    max-height: 420px;
+    display: flex;
+    flex-direction: column;
+
+    .notif-panel-header {
+      padding: 14px 16px 10px;
+      font-weight: 700;
+      color: #1f2937;
+      font-size: 0.95rem;
+      border-bottom: 1px solid #f1f3f5;
+    }
+
+    .notif-list {
+      overflow-y: auto;
+      padding: 6px;
+    }
+
+    .notif-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: #f8f9fa;
+      }
+
+      .notif-item-icon {
+        flex: none;
+        margin-top: 3px;
+        font-size: 0.9rem;
+        color: #10b981;
+      }
+
+      .notif-item-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .notif-message {
+          font-size: 0.85rem;
+          color: #374151;
+          line-height: 1.35;
+        }
+
+        .notif-date {
+          font-size: 0.72rem;
+          color: #9ca3af;
+        }
+      }
+
+      &.unread {
+        background: #f5f3ff;
+
+        .notif-message {
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        &:hover {
+          background: #ede9fe;
+        }
+      }
+    }
+
+    .notif-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      color: #9ca3af;
+      text-align: center;
+      gap: 0.5rem;
+
+      i { font-size: 1.5rem; }
+      p { margin: 0; font-size: 0.85rem; }
     }
   }
 }

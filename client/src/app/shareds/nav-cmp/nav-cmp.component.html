@@ -17,14 +17,36 @@
       </div>
     } @else {
       <div class="user-actions">
-        <!-- Badge de notifications -->
-        <div class="notification-badge-container" (click)="router.navigate(['/favorites'])" title="Voir mes alertes">
+        <!-- Notifications -->
+        <div class="notification-badge-container" [class.has-unread]="unreadCount > 0" (click)="notifPanel.toggle($event)" title="Notifications">
           <i class="pi pi-bell notification-icon">
-            @if (notifications.length > 0) {
-              <p-badge [value]="notifications.length.toString()" severity="danger"></p-badge>
+            @if (unreadCount > 0) {
+              <p-badge [value]="unreadCount.toString()" severity="danger"></p-badge>
             }
           </i>
         </div>
+
+        <p-popover #notifPanel (onShow)="markAsRead()">
+          <div class="notif-panel">
+            <div class="notif-panel-header">Notifications</div>
+            <div class="notif-list">
+              @for (n of notifications; track n.id) {
+                <div class="notif-item" [class.unread]="!n.is_read" (click)="openNotification(n)">
+                  <i class="pi pi-tag notif-item-icon"></i>
+                  <div class="notif-item-main">
+                    <span class="notif-message">{{n.message}}</span>
+                    <span class="notif-date">{{ relativeTime(n.date) }}</span>
+                  </div>
+                </div>
+              } @empty {
+                <div class="notif-empty">
+                  <i class="pi pi-bell"></i>
+                  <p>Aucune notification pour le moment</p>
+                </div>
+              }
+            </div>
+          </div>
+        </p-popover>
 
         <div class="user-info" (click)="menu.toggle($event)">
           <div class="text-info">

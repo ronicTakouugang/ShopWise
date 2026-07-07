@@ -9,7 +9,7 @@ from flask_cors import CORS
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from apscheduler.schedulers.background import BackgroundScheduler
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
 import pyrebase
 
 # --- Fonctions de scraping
@@ -192,54 +192,57 @@ def compute_deal_attributes(record: dict, query: str = "") -> dict:
 #########################
 # Fonction de recherche de produits
 #########################
+# Délai maximum accordé à un site pour répondre avant qu'on l'écarte de la recherche.
+SCRAPER_TIMEOUT_SECONDS = 15
+
+
 def do_search(query: str) -> list:
     """
     Effectue une recherche de produits à partir d'un mot-clé en utilisant plusieurs scrapers.
     Retourne une liste de produits filtrés et triés par prix.
-    Chaque scraper est exécuté de manière isolée pour éviter qu'une erreur ne fasse planter tout le processus.
+    Les scrapers tournent en parallèle sous un délai commun : un site lent ou en erreur
+    est simplement écarté, sans jamais retarder les résultats des autres sites.
     """
-    amazon_records = []
-    glotehlo_records = []
-    walmart_records = []
-    leclerc_records = []
+    executor = ThreadPoolExecutor(max_workers=4)
+    try:
+        futures = {
+            executor.submit(scrape_amazon, query): "Amazon",
+            executor.submit(scrape_glotelho, query): "Glotelho",
+            executor.submit(scrape_walmart, query): "Walmart",
+            executor.submit(scrape_leclerc, query): "Leclerc",
+        }
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        future_amazon = executor.submit(scrape_amazon, query)
-        future_glotehlo = executor.submit(scrape_glotelho, query)
-        future_walmart = executor.submit(scrape_walmart, query)
-        future_leclerc = executor.submit(scrape_leclerc, query)
-        
-        try:
-            amazon_records = future_amazon.result()
-            if amazon_records is None:
-                amazon_records = []
-        except Exception as e:
-            logging.error("Erreur lors du scraping Amazon pour '%s': %s", query, e)
-            amazon_records = []
+        # Un seul délai partagé pour les 4 scrapers en même temps : un site lent
+        # ne grignote plus le temps d'attente des autres (contrairement à des
+        # future.result(timeout=...) enchaînés un par un).
+        done, not_done = futures_wait(futures.keys(), timeout=SCRAPER_TIMEOUT_SECONDS)
 
-        try:
-            glotehlo_records = future_glotehlo.result()
-            if glotehlo_records is None:
-                glotehlo_records = []
-        except Exception as e:
-            logging.error("Erreur lors du scraping Glotelho pour '%s': %s", query, e)
-            glotehlo_records = []
+        results_by_source = {}
+        for future in done:
+            source_name = futures[future]
+            try:
+                records = future.result()
+                results_by_source[source_name] = records if records else []
+            except Exception as e:
+                logging.error("Erreur lors du scraping %s pour '%s': %s", source_name, query, e)
+                results_by_source[source_name] = []
 
-        try:
-            walmart_records = future_walmart.result()
-            if walmart_records is None:
-                walmart_records = []
-        except Exception as e:
-            logging.error("Erreur lors du scraping Walmart pour '%s': %s", query, e)
-            walmart_records = []
+        for future in not_done:
+            source_name = futures[future]
+            logging.warning(
+                "Le site %s n'a pas répondu en moins de %ds pour la requête '%s', "
+                "il est écarté de cette recherche.", source_name, SCRAPER_TIMEOUT_SECONDS, query
+            )
+            results_by_source[source_name] = []
 
-        try:
-            leclerc_records = future_leclerc.result()
-            if leclerc_records is None:
-                leclerc_records = []
-        except Exception as e:
-            logging.error("Erreur lors du scraping Leclerc pour '%s': %s", query, e)
-            leclerc_records = []
+        amazon_records = results_by_source.get("Amazon", [])
+        glotehlo_records = results_by_source.get("Glotelho", [])
+        walmart_records = results_by_source.get("Walmart", [])
+        leclerc_records = results_by_source.get("Leclerc", [])
+    finally:
+        # wait=False : on ne bloque pas la réponse sur un scraper resté accroché en arrière-plan,
+        # il se terminera de lui-même et sera simplement ignoré.
+        executor.shutdown(wait=False)
 
     combined_results = amazon_records + glotehlo_records + walmart_records + leclerc_records
 
@@ -465,6 +468,20 @@ def get_notifications():
     except Exception as e: return jsonify({"error": str(e)}), 500
 
 
+@app.route('/notifications/read', methods=['POST'])
+def mark_notifications_read():
+    """Marque toutes les notifications de l'utilisateur comme lues."""
+    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
+    email = session['email']
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE in_app_notifications SET is_read = 1 WHERE email = ? AND is_read = 0", (email,))
+            conn.commit()
+        return jsonify({"message": "Notifications marquées comme lues."})
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+
 @app.route('/favorites', methods=['POST'])
 def add_favorite():
     """Ajoute un produit aux favoris."""
@@ -601,6 +618,22 @@ def forgot_password():
         return jsonify({"error": "Erreur lors de l'envoi de l'email."}), 500
 
 
+def mark_favorites(results: list, email: str | None) -> list:
+    """Ajoute isFavorite=True aux résultats déjà présents dans les favoris de l'utilisateur."""
+    if not email or not results:
+        return results
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT productURL FROM favorites WHERE email = ?", (email,))
+            favorite_urls = {row[0] for row in cursor.fetchall()}
+        for record in results:
+            record["isFavorite"] = record.get("productURL") in favorite_urls
+    except Exception as e:
+        logging.error("Erreur lors du marquage des favoris: %s", e)
+    return results
+
+
 #########################
 # Endpoint /search : Recherche de produits
 #########################
@@ -616,6 +649,7 @@ def search():
     session["last_search_query"] = query
     try:
         results = do_search(query)
+        results = mark_favorites(results, session.get("email"))
         logging.info("Recherche '%s' retournant %d résultats.", query, len(results))
         return jsonify(results)
     except Exception as e:
