@@ -128,6 +128,19 @@ def init_db() -> None:
                     is_read INTEGER DEFAULT 0
                 )
             """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS articles (
+                    productURL TEXT PRIMARY KEY,
+                    description TEXT,
+                    imageURL TEXT,
+                    source TEXT,
+                    sourceLogo TEXT,
+                    rating TEXT,
+                    reviewCount TEXT,
+                    last_price REAL,
+                    last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
             conn.commit()
         logging.info("Base de données initialisée avec succès.")
     except Exception as e:
@@ -189,6 +202,56 @@ def compute_deal_attributes(record: dict, query: str = "") -> dict:
             
     record["relevance_score"] = round(relevance_score, 2)
     return record
+
+
+#########################
+# Persistance du catalogue d'articles et de l'historique de prix
+#########################
+def persist_articles(records: list) -> None:
+    """
+    Met à jour le catalogue d'articles et enregistre un point d'historique de prix
+    pour chaque produit ramené par une recherche réelle (hors cache).
+    Un nouveau point n'est ajouté à price_history que si le prix a changé par
+    rapport au dernier point connu, pour éviter de saturer l'historique de points
+    identiques à chaque recherche.
+    """
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            cursor = conn.cursor()
+            for record in records:
+                product_url = str(record.get("productURL", "")).strip()
+                numeric_price = record.get("numeric_price", float('inf'))
+                if not product_url or numeric_price == float('inf'):
+                    continue
+
+                cursor.execute("""
+                    INSERT OR REPLACE INTO articles
+                    (productURL, description, imageURL, source, sourceLogo, rating, reviewCount, last_price, last_seen_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                """, (
+                    product_url,
+                    record.get("description"),
+                    record.get("imageURL"),
+                    record.get("source"),
+                    record.get("sourceLogo"),
+                    record.get("rating"),
+                    record.get("reviewCount"),
+                    numeric_price,
+                ))
+
+                cursor.execute(
+                    "SELECT price FROM price_history WHERE productURL = ? ORDER BY date DESC LIMIT 1",
+                    (product_url,)
+                )
+                last = cursor.fetchone()
+                if last is None or last[0] != numeric_price:
+                    cursor.execute(
+                        "INSERT INTO price_history (productURL, price) VALUES (?, ?)",
+                        (product_url, numeric_price)
+                    )
+            conn.commit()
+    except Exception as e:
+        logging.error("Erreur lors de la persistance des articles: %s", e)
 
 
 #########################
@@ -272,14 +335,16 @@ def do_search(query: str) -> list:
     try:
         # Tri par pertinence décroissante d'abord, puis par prix croissant
         sorted_results = sorted(
-            filtered_results, 
+            filtered_results,
             key=lambda r: (-r.get("relevance_score", 0), r.get("numeric_price", float('inf')))
         )
-        return sorted_results
     except Exception as e:
         logging.error("Erreur lors du tri des résultats : %s", e)
         # En cas d'erreur de tri, retourner les résultats non triés mais fonctionnels
-        return filtered_results
+        sorted_results = filtered_results
+
+    persist_articles(sorted_results)
+    return sorted_results
 
 
 #########################

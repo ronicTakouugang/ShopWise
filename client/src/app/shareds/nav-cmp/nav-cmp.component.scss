@@ -85,7 +85,10 @@
   97% { transform: rotate(0); }
 }
 
-:host ::ng-deep {
+// PrimeNG déplace le panneau du popover vers <body> (appendTo="body" par défaut),
+// donc hors du sous-arbre DOM de app-nav-cmp : un ":host ::ng-deep" ne matcherait
+// plus rien ici, il faut un ::ng-deep global (sans :host).
+::ng-deep {
   .p-popover {
     .p-popover-content {
       padding: 0;
@@ -233,7 +236,11 @@
     font-weight: 700;
     box-shadow: 0 2px 5px rgba(70, 50, 226, 0.3);
   }
+}
 
+// p-menu est aussi déplacé vers <body> (appendTo="body" sur <p-menu>), même raison
+// que pour le popover ci-dessus : pas de ":host" possible ici.
+::ng-deep {
   .p-menu.user-popup-menu {
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
