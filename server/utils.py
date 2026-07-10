@@ -22,6 +22,17 @@ def get_robust_headers(accept_language: str = "en-US,en;q=0.9"):
         "Upgrade-Insecure-Requests": "1",
     }
 
+# Marqueurs de pages de vérification anti-bot connues, qui répondent parfois avec un
+# statut 200 (donc invisibles pour une simple vérification de status_code).
+_BOT_CHALLENGE_MARKERS = (
+    "robot or human",
+    "captcha",
+    "unusual traffic",
+    "pardon our interruption",
+    "access denied",
+)
+
+
 def robust_request(url, method="GET", impersonate="chrome120", timeout=30, max_retries=3, accept_language="en-US,en;q=0.9", **kwargs):
     """
     Effectue une requête HTTP robuste en utilisant curl_cffi pour l'empreinte TLS.
@@ -60,6 +71,16 @@ def robust_request(url, method="GET", impersonate="chrome120", timeout=30, max_r
                     content_len = len(response.content)
                     if content_len < 1000:
                         logging.warning(f"⚠️ Réponse suspecte (trop courte: {content_len} bytes) pour {url}")
+
+                    # Certains sites (Walmart notamment) répondent 200 avec une page de
+                    # vérification anti-bot ("Robot or human?") au lieu d'un vrai 403/429 :
+                    # invisible si on ne regarde que le status code. On la traite comme un
+                    # blocage (retry) plutôt que de la faire passer pour un résultat valide.
+                    text_lower = response.text[:5000].lower()
+                    if any(marker in text_lower for marker in _BOT_CHALLENGE_MARKERS):
+                        logging.warning(f"🤖 Page de vérification anti-bot détectée pour {url}. Tentative {attempt+1}/{max_retries}")
+                        continue
+
                     return response
                 elif response.status_code == 403:
                     logging.warning(f"🚫 Accès refusé (403) pour {url}. Tentative {attempt+1}/{max_retries}")
@@ -85,6 +106,39 @@ def normalize_text(text: str) -> str:
     # Met en minuscule et garde seulement alphanumérique et espaces
     return re.sub(r'[^a-z0-9\s]', '', text.lower()).strip()
 
+def _parse_localized_number(raw: str) -> float:
+    """
+    Parse un nombre en format français (1.234,56, ou 1.234 pour des milliers sans
+    décimales, courant en FCFA) ou US (1,234.56). Lève ValueError si non parsable.
+    Utilisé par extract_price et convert_to_euro pour éviter deux implémentations
+    divergentes du même problème (voir bug historique : "11.814.928,42 FCFA" mal
+    interprété faute de gérer le point comme séparateur de milliers).
+    """
+    cleaned = re.sub(r'[^\d,.]', '', raw)
+    if not cleaned:
+        raise ValueError("no digits")
+
+    has_dot, has_comma = '.' in cleaned, ',' in cleaned
+    if has_dot and has_comma:
+        if cleaned.rfind(',') > cleaned.rfind('.'):
+            # Dernier séparateur = virgule -> décimal français, point(s) = milliers
+            cleaned = cleaned.replace('.', '').replace(',', '.')
+        else:
+            # Dernier séparateur = point -> décimal US, virgule(s) = milliers
+            cleaned = cleaned.replace(',', '')
+    elif has_comma:
+        parts = cleaned.split(',')
+        cleaned = cleaned.replace(',', '.') if len(parts) == 2 and len(parts[1]) == 2 else cleaned.replace(',', '')
+    elif has_dot:
+        parts = cleaned.split('.')
+        if not (len(parts) == 2 and len(parts[1]) == 2):
+            cleaned = cleaned.replace('.', '')  # ex: "45.000" -> 45000, pas 45.0
+
+    if not cleaned or cleaned == ".":
+        raise ValueError("empty after cleaning")
+    return float(cleaned)
+
+
 def extract_price(price_str: str) -> float:
     """
     Extrait le prix numérique à partir d'une chaîne.
@@ -99,31 +153,8 @@ def extract_price(price_str: str) -> float:
             
         # Nettoyage de la chaîne
         # On enlève les espaces
-        cleaned = price_str.replace(" ", "").replace("\u00a0", "").strip()
-        
-        # Gestion du format français (1.234,56) vs US (1,234.56)
-        # Si on a un point et une virgule, on suppose que le point est le séparateur de milliers
-        if "." in cleaned and "," in cleaned:
-            if cleaned.find(".") < cleaned.find(","):
-                cleaned = cleaned.replace(".", "").replace(",", ".")
-            else:
-                cleaned = cleaned.replace(",", "")
-        elif "," in cleaned:
-            # S'il n'y a qu'une virgule, on vérifie si c'est un séparateur décimal (ex: 29,99) 
-            # ou de milliers (ex: 1,000)
-            # Dans le contexte Euro/FCFA, c'est souvent un séparateur décimal
-            # Mais attention au format 1,234.56 (déjà géré au dessus)
-            # Si la virgule est suivie de 2 chiffres à la fin, c'est probablement décimal
-            if len(cleaned.split(",")[-1]) == 2:
-                cleaned = cleaned.replace(",", ".")
-            else:
-                cleaned = cleaned.replace(",", "")
-
-        # On garde seulement les chiffres et le point décimal
-        numeric_str = re.sub(r'[^\d.]', '', cleaned)
-        if not numeric_str or numeric_str == ".":
-            return float('inf')
-        return float(numeric_str)
+        cleaned = price_str.replace(" ", "").strip()
+        return _parse_localized_number(cleaned)
     except Exception as e:
         logging.error("Erreur d'extraction du prix pour '%s': %s", price_str, e)
         return float('inf')
@@ -172,15 +203,13 @@ def convert_to_euro(price_str: str) -> str:
         if not re.search(r'\d', price_str):
             return price_str
             
-        # Nettoyage pour extraction numérique
-        numeric_part = re.sub(r'[^\d,.]', '', price_str)
-        if ',' in numeric_part and '.' in numeric_part:
-            numeric_part = numeric_part.replace(',', '')
-        elif ',' in numeric_part:
-            numeric_part = numeric_part.replace(',', '.')
-            
-        val = float(numeric_part)
-        
+        val = _parse_localized_number(price_str)
+
+        # Un prix de 0 ne signifie jamais "gratuit" sur ce catalogue : c'est un produit
+        # sans prix renseigné côté source (souvent hors-stock ou sur devis).
+        if val == 0:
+            return "N/A"
+
         # Détection de la devise et conversion
         if "FCFA" in price_str or "CFA" in price_str:
             val = val * FCFA_TO_EURO
@@ -200,4 +229,7 @@ def convert_to_euro(price_str: str) -> str:
         return "{:,.2f} €".format(val)
     except Exception as e:
         logging.error(f"Erreur conversion Euro pour '{price_str}': {e}")
-        return price_str
+        # Ne jamais renvoyer la chaîne brute non convertie : un appelant en aval
+        # (extract_price) la parserait comme si c'était déjà de l'EUR (bug historique
+        # avec des montants FCFA non convertis affichés ~656x trop élevés).
+        return "N/A"

@@ -1,5 +1,5 @@
 .auth-card {
-  background: white;
+  background: var(--color-card-bg);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
@@ -12,7 +12,7 @@
 }
 
 .auth-header {
-  background: white;
+  background: var(--color-card-bg);
   padding: 24px;
   display: flex;
   justify-content: space-between;
@@ -23,7 +23,7 @@
 
 .auth-logo {
   font-family: "Knewave", serif;
-  color: #4632e2;
+  color: var(--color-primary);
   font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.5px;
@@ -39,7 +39,7 @@
 .close-btn {
   background: #f3f4f6;
   border: none;
-  color: #6b7280;
+  color: var(--color-muted);
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -51,7 +51,7 @@
 
   &:hover {
     background: #e5e7eb;
-    color: #111827;
+    color: var(--color-heading);
     transform: rotate(90deg);
   }
 }
@@ -70,7 +70,7 @@
 .auth-subtitle {
   margin: 0 0 24px 0;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-muted);
 }
 
 .field--content {
@@ -110,7 +110,7 @@
     transition: all 0.2s !important;
 
     &:focus {
-      border-color: #4632e2 !important;
+      border-color: var(--color-primary) !important;
       box-shadow: 0 0 0 3px rgba(70, 50, 226, 0.1) !important;
       outline: none !important;
     }
@@ -122,7 +122,7 @@
 
   .auth-submit-btn {
     width: 100% !important;
-    background: #4632e2 !important;
+    background: var(--color-primary) !important;
     border: none !important;
     padding: 14px !important;
     border-radius: 10px !important;
@@ -150,11 +150,11 @@
 
 .compte {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-muted);
 }
 
 .auth-link {
-  color: #4632e2;
+  color: var(--color-primary);
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;

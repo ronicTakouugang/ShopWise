@@ -1,4 +1,5 @@
 /* You can add global styles to this file, and also import other style files */
+@use "styles/variables";
 @import "primeicons/primeicons.css";
 
 *{
@@ -14,7 +15,8 @@ body {
   height: 100vh;
   width: 100vw;
   overflow-x: hidden;
-  background: #f5f5f5;
+  background: var(--color-bg);
+  transition: background 0.2s ease;
 }
 .wrapper{
   padding: 10px;

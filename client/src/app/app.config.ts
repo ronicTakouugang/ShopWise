@@ -9,7 +9,6 @@ import {provideHttpClient, withInterceptors} from '@angular/common/http';
 import {loaderInterceptor} from './shareds/loader/services/loader.interceptor';
 import {MessageService} from 'primeng/api';
 import {ToastInterceptor} from './shareds/toast/services/toast.interceptor';
-import {provideAnimations} from '@angular/platform-browser/animations';
 
 
 export const appConfig: ApplicationConfig = {
@@ -18,7 +17,6 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(
       withInterceptors([loaderInterceptor,ToastInterceptor])
     ),
-    provideAnimations(),
     provideAnimationsAsync(),
     providePrimeNG({
       ripple: true,
@@ -26,7 +24,7 @@ export const appConfig: ApplicationConfig = {
         preset: MyPreset,
         options: {
           prefix: 'p',
-          darkModeSelector: 'system',
+          darkModeSelector: '.app-dark',
           cssLayer: false
         }
       }

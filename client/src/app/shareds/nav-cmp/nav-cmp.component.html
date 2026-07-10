@@ -8,8 +8,28 @@
     </div>
   </ng-template>
   <ng-template #center>
+    @if (authSer.isAuth){
+      <div class="nav-links">
+        <a routerLink="/favorites" routerLinkActive="active" class="nav-link">
+          <i class="pi pi-heart"></i>
+          <span>Favoris</span>
+        </a>
+        <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">
+          <i class="pi pi-chart-bar"></i>
+          <span>Dashboard</span>
+        </a>
+      </div>
+    }
   </ng-template>
   <ng-template #end>
+    <button
+      type="button"
+      class="theme-toggle-btn"
+      [attr.aria-label]="themeService.isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
+      [title]="themeService.isDark ? 'Mode clair' : 'Mode sombre'"
+      (click)="themeService.toggle()">
+      <i class="pi" [class.pi-sun]="themeService.isDark" [class.pi-moon]="!themeService.isDark"></i>
+    </button>
     @if (!authSer.isAuth){
       <div class="auth-actions">
         <p-button class="auth--btn" label="Se connecter" variant="text" icon="pi pi-user" (click)="signIn()"/>

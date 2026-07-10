@@ -19,7 +19,7 @@
     border: none;
     border-radius: 0;
     padding: 0.75rem 2rem;
-    background: white;
+    background: var(--color-card-bg);
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
     position: sticky;
     top: 0;
@@ -29,6 +29,63 @@
     font-weight: 800 !important;
     margin-right: 7px;
     color: #4a4a50 !important;
+  }
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  margin-right: 0.75rem;
+  transition: background 0.2s ease, color 0.2s ease;
+
+  i {
+    font-size: 1.1rem;
+  }
+
+  &:hover {
+    background: #f1f3f5;
+    color: var(--color-primary);
+  }
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    color: var(--color-muted);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+
+    i {
+      font-size: 1rem;
+    }
+
+    &:hover {
+      background: #f1f3f5;
+      color: var(--color-primary);
+    }
+
+    &.active {
+      background: rgba(70, 50, 226, 0.1);
+      color: var(--color-primary);
+    }
   }
 }
 
@@ -53,7 +110,7 @@
 
     .notification-icon {
       font-size: 1.25rem;
-      color: #6b7280;
+      color: var(--color-muted);
       position: relative;
       transition: color 0.2s ease;
 
@@ -70,7 +127,7 @@
     }
 
     &.has-unread .notification-icon {
-      color: #4632e2;
+      color: var(--color-primary);
       animation: bellRing 2.5s ease-in-out infinite;
     }
   }
@@ -231,7 +288,7 @@
 
 :host ::ng-deep {
   .user-avatar {
-    background-color: #4632e2 !important;
+    background-color: var(--color-primary) !important;
     color: white !important;
     font-weight: 700;
     box-shadow: 0 2px 5px rgba(70, 50, 226, 0.3);
@@ -258,7 +315,7 @@
           transition: all 0.2s ease;
 
           .p-menuitem-icon {
-            color: #4632e2;
+            color: var(--color-primary);
             margin-right: 12px;
           }
 
@@ -293,3 +350,22 @@
     }
   }
 }
+
+@media (max-width: 768px) {
+  :host ::ng-deep .p-toolbar {
+    padding: 0.6rem 1rem;
+  }
+
+  .Title {
+    font-size: 1.1rem;
+  }
+
+  .nav-links .nav-link span {
+    display: none;
+  }
+
+  .user-actions .text-info {
+    display: none;
+  }
+}
+

@@ -11,7 +11,7 @@
 /* Skeleton Loader */
 .skeleton-card {
   width: 300px;
-  background: white;
+  background: var(--color-card-bg);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -61,6 +61,35 @@
   100% { background-position: -200% 0; }
 }
 
+.search-error-state, .search-empty-state {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--color-muted);
+
+  i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+.search-error-state i {
+  color: #dc2626;
+}
+
+.search-empty-state i {
+  color: var(--color-primary);
+}
+
 .filter-section {
   width: 100%;
   display: flex;
@@ -72,7 +101,7 @@
 .filters-container {
   display: flex;
   gap: 16px;
-  background: white;
+  background: var(--color-card-bg);
   padding: 8px;
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -90,7 +119,7 @@
     }
 
     i {
-      color: #4632e2;
+      color: var(--color-primary);
       margin-right: 8px;
       font-size: 1rem;
     }
@@ -113,7 +142,7 @@
       padding-right: 24px;
 
       &:hover {
-        color: #4632e2;
+        color: var(--color-primary);
       }
     }
   }
@@ -130,9 +159,9 @@
   button {
     padding: 10px 24px;
     border-radius: 50px;
-    border: 1px solid #4632e2;
-    background: white;
-    color: #4632e2;
+    border: 1px solid var(--color-primary);
+    background: var(--color-card-bg);
+    color: var(--color-primary);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -147,7 +176,7 @@
     }
 
     &:not(:disabled):hover {
-      background: #4632e2;
+      background: var(--color-primary);
       color: white;
       box-shadow: 0 4px 12px rgba(70, 50, 226, 0.2);
     }
@@ -157,5 +186,30 @@
     font-weight: 600;
     color: #4b5563;
     font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .filters-container {
+    flex-wrap: wrap;
+    justify-content: center;
+
+    .filter-group {
+      border-right: none;
+      padding: 4px 8px;
+
+      .custom-select {
+        min-width: 0;
+      }
+    }
+  }
+
+  .pagination {
+    gap: 12px;
+    padding: 16px;
+
+    button {
+      padding: 8px 14px;
+    }
   }
 }

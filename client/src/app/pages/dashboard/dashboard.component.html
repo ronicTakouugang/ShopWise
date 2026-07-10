@@ -1,0 +1,59 @@
+<div class="dashboard-container">
+  <div class="header">
+    <button class="back-btn" routerLink="/home">
+      <i class="pi pi-arrow-left"></i>
+      Retour
+    </button>
+    <h1>Dashboard</h1>
+    <p>Un aperçu des tendances de recherche et des prix suivis sur ShopWise.</p>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <p>Chargement des statistiques...</p>
+  </div>
+
+  <div *ngIf="!loading && loadError" class="error-state">
+    <i class="pi pi-exclamation-triangle"></i>
+    <h2>Impossible de charger les statistiques</h2>
+    <p>Une erreur est survenue. Vérifiez votre connexion et réessayez.</p>
+    <button class="explore-btn" (click)="loadSummary()">
+      <i class="pi pi-refresh"></i>
+      Réessayer
+    </button>
+  </div>
+
+  <ng-container *ngIf="!loading && !loadError && summary">
+    <div class="stats-row">
+      <div class="stat-card">
+        <i class="pi pi-bell stat-icon"></i>
+        <span class="stat-value">{{summary.recent_price_drops}}</span>
+        <span class="stat-label">Baisses de prix (7 derniers jours)</span>
+      </div>
+      <div class="stat-card">
+        <i class="pi pi-tag stat-icon"></i>
+        <span class="stat-value">{{summary.tracked_subscriptions}}</span>
+        <span class="stat-label">Produits sous alerte</span>
+      </div>
+      <div class="stat-card">
+        <i class="pi pi-heart stat-icon"></i>
+        <span class="stat-value">{{summary.tracked_favorites}}</span>
+        <span class="stat-label">Produits en favoris</span>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Recherches les plus fréquentes</h3>
+        <p-chart type="bar" [data]="topSearchesChart" [options]="chartOptions" *ngIf="summary.top_searches.length > 0" [style]="{height: '280px'}"></p-chart>
+        <p class="chart-empty" *ngIf="summary.top_searches.length === 0">Pas encore assez de recherches enregistrées.</p>
+      </div>
+
+      <div class="chart-card">
+        <h3>Prix moyen par source</h3>
+        <p-chart type="bar" [data]="sourceStatsChart" [options]="chartOptions" *ngIf="summary.source_stats.length > 0" [style]="{height: '280px'}"></p-chart>
+        <p class="chart-empty" *ngIf="summary.source_stats.length === 0">Pas encore assez de produits suivis.</p>
+      </div>
+    </div>
+  </ng-container>
+</div>

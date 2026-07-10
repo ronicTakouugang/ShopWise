@@ -6,6 +6,7 @@ import {Toast} from 'primeng/toast';
 import {MessageService} from 'primeng/api';
 import {AuthFormComponent} from './shareds/AuthModule/auth-form/auth-form.component';
 import {LoaderComponent} from './shareds/loader/loader.component';
+import {ThemeService} from './shareds/theme/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -17,7 +18,7 @@ import {LoaderComponent} from './shareds/loader/loader.component';
 })
 export class AppComponent{
   title = 'ShopWise';
-  constructor(private messageService: MessageService) {
+  constructor(private messageService: MessageService, private themeService: ThemeService) {
   }
   openForm:boolean = false;
   hadAccount:boolean = true;

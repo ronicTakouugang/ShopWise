@@ -41,8 +41,10 @@ export class SearchComponent {
           finalize: () => this.disable = false,
         })
       )
-      .subscribe(
-        data => this.articleService.next()
-      );
+      .subscribe({
+        next: () => this.articleService.next(),
+        error: () => this.articleService.errorSubject.next()
+      });
   }
 }
+

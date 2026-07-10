@@ -20,6 +20,7 @@ export class FavoritesComponent implements OnInit {
   compareList: Article[] = [];
   apiUrl = environment.apiUrl;
   loading: boolean = true;
+  loadError: boolean = false;
   sortBy: string = 'date_added';
   showComparisonPanel: boolean = false;
 
@@ -31,6 +32,7 @@ export class FavoritesComponent implements OnInit {
 
   loadFavorites() {
     this.loading = true;
+    this.loadError = false;
     this.http.get<Article[]>(`${this.apiUrl}/favorites?sort=${this.sortBy}`, { withCredentials: true })
       .subscribe({
         next: (data) => {
@@ -40,6 +42,7 @@ export class FavoritesComponent implements OnInit {
         error: (err) => {
           console.error('Erreur lors du chargement des favoris', err);
           this.loading = false;
+          this.loadError = true;
         }
       });
   }
@@ -55,6 +58,8 @@ export class FavoritesComponent implements OnInit {
     } else {
       if (this.compareList.length < 3) {
         this.compareList.push(article);
+      } else {
+        this.toastService.showWarnCustom('Vous pouvez comparer 3 produits maximum. Retirez-en un pour en ajouter un autre.', 'Limite atteinte');
       }
     }
   }

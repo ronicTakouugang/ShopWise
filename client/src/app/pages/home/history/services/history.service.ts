@@ -34,7 +34,10 @@ export class HistoryService {
   }
 
   save(histor: Histor) {
-    return this.http.post(`${this.apiUrl}/subscribe`, { query: histor.search }, { withCredentials: true }).pipe(
+    return this.http.post(`${this.apiUrl}/subscribe`, {
+      query: histor.search,
+      threshold_percent: histor.thresholdPercent ?? null
+    }, { withCredentials: true }).pipe(
       timeout(25000),
       tap(data => {
         console.log("Subscribe response:", data);

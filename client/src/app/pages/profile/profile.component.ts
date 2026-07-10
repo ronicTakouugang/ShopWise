@@ -27,6 +27,8 @@ export class ProfileComponent implements OnInit {
   };
   apiUrl = environment.apiUrl;
   loading: boolean = false;
+  loadingProfile: boolean = false;
+  profileLoadError: boolean = false;
 
   constructor(
     private http: HttpClient,
@@ -39,10 +41,19 @@ export class ProfileComponent implements OnInit {
   }
 
   loadProfile() {
+    this.loadingProfile = true;
+    this.profileLoadError = false;
     this.http.get<any>(`${this.apiUrl}/profile`, { withCredentials: true })
-      .subscribe(data => {
-        this.profile.display_name = data.display_name;
-        this.profile.notifications_enabled = !!data.notifications_enabled;
+      .subscribe({
+        next: data => {
+          this.profile.display_name = data.display_name;
+          this.profile.notifications_enabled = !!data.notifications_enabled;
+          this.loadingProfile = false;
+        },
+        error: () => {
+          this.loadingProfile = false;
+          this.profileLoadError = true;
+        }
       });
   }
 
@@ -64,6 +75,9 @@ export class ProfileComponent implements OnInit {
   }
 
   changePassword() {
+    if (!confirm('Un email de réinitialisation de mot de passe va être envoyé à ' + this.authService.username + '. Continuer ?')) {
+      return;
+    }
     this.http.post(`${this.apiUrl}/forgot_password`, { email: this.authService.username }, { withCredentials: true })
       .subscribe({
         next: () => {

@@ -1,6 +1,5 @@
 import logging
 import sqlite3
-import random
 import math
 import smtplib
 import re
@@ -72,6 +71,14 @@ def init_db() -> None:
                     email TEXT
                 )
             """)
+            # threshold_percent : baisse minimale (en %) pour déclencher une alerte.
+            # NULL = comportement historique (toute baisse déclenche une alerte).
+            # Ajout via ALTER (la table peut déjà exister sans cette colonne sur une
+            # base créée avant cette fonctionnalité).
+            cursor.execute("PRAGMA table_info(subscriptions)")
+            existing_columns = {row[1] for row in cursor.fetchall()}
+            if "threshold_percent" not in existing_columns:
+                cursor.execute("ALTER TABLE subscriptions ADD COLUMN threshold_percent REAL")
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS favorites (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,6 +148,14 @@ def init_db() -> None:
                     last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS search_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    query TEXT,
+                    email TEXT,
+                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
             conn.commit()
         logging.info("Base de données initialisée avec succès.")
     except Exception as e:
@@ -207,6 +222,12 @@ def compute_deal_attributes(record: dict, query: str = "") -> dict:
 #########################
 # Persistance du catalogue d'articles et de l'historique de prix
 #########################
+# Plafond de sécurité pour un prix persistable : aucun produit de ce catalogue ne
+# vaut légitimement plus que ça. Filet de sécurité contre un futur bug de parsing de
+# prix dans un scraper (cf. bug historique de conversion FCFA -> prix ~656x trop élevé).
+MAX_PLAUSIBLE_PRICE_EUR = 500_000
+
+
 def persist_articles(records: list) -> None:
     """
     Met à jour le catalogue d'articles et enregistre un point d'historique de prix
@@ -222,6 +243,12 @@ def persist_articles(records: list) -> None:
                 product_url = str(record.get("productURL", "")).strip()
                 numeric_price = record.get("numeric_price", float('inf'))
                 if not product_url or numeric_price == float('inf'):
+                    continue
+                if numeric_price <= 0 or numeric_price > MAX_PLAUSIBLE_PRICE_EUR:
+                    logging.warning(
+                        "Prix invraisemblable ignoré pour '%s' (%s): %s",
+                        record.get("description"), product_url, numeric_price
+                    )
                     continue
 
                 cursor.execute("""
@@ -359,10 +386,24 @@ _search_cache = {}
 _search_cache_lock = threading.Lock()
 
 
+def log_search(query: str) -> None:
+    """Enregistre une recherche pour les statistiques (recherches les plus fréquentes)."""
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            conn.execute(
+                "INSERT INTO search_log (query, email) VALUES (?, ?)",
+                (normalize_text(query), session.get("email"))
+            )
+            conn.commit()
+    except Exception as e:
+        logging.error("Erreur lors de l'enregistrement de la recherche: %s", e)
+
+
 def do_search_cached(query: str) -> list:
     """Sert les résultats depuis un cache court si disponible, sinon lance do_search."""
     cache_key = normalize_text(query)
     now = time.time()
+    log_search(query)
 
     with _search_cache_lock:
         cached = _search_cache.get(cache_key)
@@ -506,6 +547,65 @@ def get_price_history():
             return jsonify([dict(row) for row in rows])
     except Exception as e:
         logging.error("Erreur lors de la récupération de l'historique: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/analytics/summary', methods=['GET'])
+def get_analytics_summary():
+    """
+    Statistiques globales : recherches les plus fréquentes, comparatif agrégé par source
+    (prix moyen/min/max), baisses de prix récentes et nombre de produits suivis.
+    Ce n'est PAS un comparatif produit-à-produit entre retailers (les résultats de sources
+    différentes ne sont pas mis en correspondance par SKU/EAN), juste des stats par source.
+    """
+    try:
+        with sqlite3.connect("subscriptions.db") as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT query, COUNT(*) as count
+                FROM search_log
+                GROUP BY query
+                ORDER BY count DESC
+                LIMIT 10
+            """)
+            top_searches = [dict(row) for row in cursor.fetchall()]
+
+            cursor.execute("""
+                SELECT source,
+                       COUNT(*) as product_count,
+                       AVG(last_price) as avg_price,
+                       MIN(last_price) as min_price,
+                       MAX(last_price) as max_price
+                FROM articles
+                WHERE last_price IS NOT NULL AND last_price < 999999999
+                GROUP BY source
+            """)
+            source_stats = [dict(row) for row in cursor.fetchall()]
+
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM in_app_notifications
+                WHERE date >= datetime('now', '-7 days')
+            """)
+            recent_price_drops = cursor.fetchone()["count"]
+
+            cursor.execute("SELECT COUNT(*) as count FROM subscriptions")
+            tracked_subscriptions = cursor.fetchone()["count"]
+
+            cursor.execute("SELECT COUNT(DISTINCT productURL) as count FROM favorites")
+            tracked_favorites = cursor.fetchone()["count"]
+
+        return jsonify({
+            "top_searches": top_searches,
+            "source_stats": source_stats,
+            "recent_price_drops": recent_price_drops,
+            "tracked_subscriptions": tracked_subscriptions,
+            "tracked_favorites": tracked_favorites,
+        })
+    except Exception as e:
+        logging.error("Erreur lors du calcul des statistiques analytics: %s", e)
         return jsonify({"error": str(e)}), 500
 
 
@@ -770,11 +870,22 @@ def subscribe():
     Enregistre un abonnement pour un query donné.
     Nécessite que l'email soit présent dans la session (login requis)
     et que le query soit envoyé dans le corps de la requête.
-    Exemple du corps JSON : {"query": "macbook"}
+    Exemple du corps JSON : {"query": "macbook", "threshold_percent": 10}
+    threshold_percent est optionnel : absent ou null = alerte dès la moindre baisse
+    (comportement historique). Sinon, l'alerte n'est déclenchée que si la baisse
+    atteint au moins ce pourcentage.
     """
     data = request.get_json()
     query = data.get("query") if data else None
     email = session.get("email")
+    threshold_percent = data.get("threshold_percent") if data else None
+    if threshold_percent is not None:
+        try:
+            threshold_percent = float(threshold_percent)
+            if threshold_percent <= 0:
+                threshold_percent = None
+        except (TypeError, ValueError):
+            threshold_percent = None
     if not query or not email:
         return jsonify({"error": "L'email en session et le query en paramètre sont requis (login et query requis)."}), 400
     try:
@@ -789,8 +900,10 @@ def subscribe():
                 product_url = record.get("productURL", "").strip()
                 initial_price = record.get("numeric_price", extract_price(str(record.get("price", ""))))
                 if product_url and initial_price != float('inf'):
-                    cursor.execute("INSERT INTO subscriptions (product_url, initial_price, email) VALUES (?, ?, ?)",
-                                   (product_url, initial_price, email))
+                    cursor.execute("""
+                        INSERT INTO subscriptions (product_url, initial_price, email, threshold_percent)
+                        VALUES (?, ?, ?, ?)
+                    """, (product_url, initial_price, email, threshold_percent))
                     count += 1
             conn.commit()
         logging.info("Abonnement enregistré pour le query '%s' pour %s (%d produits).", query, email, count)
@@ -800,19 +913,56 @@ def subscribe():
         return jsonify({"error": str(e)}), 500
 
 #########################
-# Fonction de simulation du prix actuel d'un produit
+# Fonction de récupération du prix actuel d'un produit
 #########################
+# Sources pour lesquelles on relance un vrai scraping lors du price-check automatique.
+# Amazon/Walmart en sont exclus : ce sont des sites déjà sujets au rate-limit (cf. timeouts
+# de scraping), et relancer une recherche complète par produit abonné toutes les 2h y
+# ajouterait trop de volume. Pour ces deux sources, on se contente du dernier prix connu
+# (mis à jour uniquement quand l'utilisateur relance une recherche manuelle).
+_LIVE_RECHECK_SCRAPERS = {
+    "Glotehlo": scrape_glotelho,
+    "E.Leclerc": scrape_leclerc,
+}
+
+
 def get_current_price(product_url: str) -> float:
     """
-    Simule la récupération du prix actuel d'un produit.
-    Pour une application réelle, implémentez la logique de scraping ou d'API.
+    Récupère le prix actuel d'un produit abonné.
+    - Glotelho/Leclerc : relance une recherche par mot-clé (le nom du produit) et retrouve
+      la ligne correspondant à productURL pour en extraire le prix réel.
+    - Amazon/Walmart/autre : retourne le dernier prix connu (articles.last_price), sans
+      relancer de scraping automatique.
+    - Si le produit n'est pas retrouvé (ex: disparu du site), retourne aussi last_price
+      pour ne pas déclencher de fausse alerte de baisse.
     """
     try:
-        # Simulation d'un prix en Euro raisonnable (entre 10 et 500)
-        price = random.uniform(10, 500)
-        return price
+        with sqlite3.connect("subscriptions.db") as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT source, description, last_price FROM articles WHERE productURL = ?",
+                (product_url,)
+            )
+            article = cursor.fetchone()
+
+        if article is None:
+            return float('inf')
+
+        last_price = article["last_price"] if article["last_price"] is not None else float('inf')
+        scraper = _LIVE_RECHECK_SCRAPERS.get(article["source"])
+        if scraper is None or not article["description"]:
+            return last_price
+
+        records = scraper(article["description"]) or []
+        for record in records:
+            if str(record.get("productURL", "")).strip() == product_url:
+                price = extract_price(str(record.get("price", "")))
+                return price if price != float('inf') else last_price
+
+        return last_price
     except Exception as e:
-        logging.error("Erreur lors de la simulation du prix pour '%s': %s", product_url, e)
+        logging.error("Erreur lors de la récupération du prix pour '%s': %s", product_url, e)
         return float('inf')
 
 
@@ -861,27 +1011,46 @@ def run_price_check() -> list:
     try:
         with sqlite3.connect("subscriptions.db") as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, product_url, initial_price, email FROM subscriptions")
+            cursor.execute("SELECT id, product_url, initial_price, email, threshold_percent FROM subscriptions")
             subscriptions = cursor.fetchall()
             alerts_triggered = []
             for sub in subscriptions:
-                sub_id, product_url, baseline_price, email = sub
+                sub_id, product_url, baseline_price, email, threshold_percent = sub
                 current_price = get_current_price(product_url)
-                
+                if current_price == float('inf'):
+                    # Produit introuvable (pas encore dans articles, ou disparu) : on ignore
+                    # ce tour plutôt que de polluer l'historique avec un prix invalide.
+                    continue
+
                 # Enregistrer systématiquement dans l'historique
                 cursor.execute("INSERT INTO price_history (productURL, price) VALUES (?, ?)", (product_url, current_price))
-                
+
                 if current_price < baseline_price:
-                    # Alerte Email
-                    send_email_alert(email, product_url, current_price)
-                    
-                    # Alerte In-App
+                    drop_percent = (baseline_price - current_price) / baseline_price * 100
+                    # threshold_percent NULL = comportement historique (toute baisse alerte).
+                    meets_threshold = threshold_percent is None or drop_percent >= threshold_percent
+                    if not meets_threshold:
+                        continue
+
+                    cursor.execute(
+                        "SELECT notifications_enabled FROM user_profile WHERE email = ?",
+                        (email,)
+                    )
+                    profile_row = cursor.fetchone()
+                    # Par défaut (pas de profil trouvé), notifications activées.
+                    email_enabled = profile_row[0] if profile_row else 1
+
+                    # Alerte Email (respecte la préférence utilisateur)
+                    if email_enabled:
+                        send_email_alert(email, product_url, current_price)
+
+                    # Alerte In-App (toujours envoyée, ce n'est pas ce que contrôle la case profil)
                     message = f"Le prix du produit a baissé à {format_price(current_price)} !"
                     cursor.execute("""
                         INSERT INTO in_app_notifications (email, message, productURL)
                         VALUES (?, ?, ?)
                     """, (email, message, product_url))
-                    
+
                     alerts_triggered.append({
                         "subscription_id": sub_id,
                         "email": email,
@@ -917,10 +1086,14 @@ def check_prices():
 # Lancement de l'application et du job planifié
 #########################
 if __name__ == "__main__":
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(func=run_price_check, trigger="interval", hours=2)
-    scheduler.start()
+    # En debug, le reloader Flask relance ce script dans un sous-processus : sans ce garde,
+    # le scheduler démarrerait deux fois (process parent + enfant) et doublerait le rythme
+    # réel des price-checks.
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(func=run_price_check, trigger="interval", hours=2)
+        scheduler.start()
     try:
         app.run(debug=True, host="0.0.0.0", port=5000)
     except (KeyboardInterrupt, SystemExit):
-        scheduler.shutdown()
+        pass

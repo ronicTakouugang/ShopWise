@@ -5,7 +5,7 @@
   justify-content: flex-start;
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 50%, #f3f0ff 100%);
+  background: var(--color-bg);
   padding: 20px;
   box-sizing: border-box;
 }
@@ -137,8 +137,8 @@
 
     &:hover {
       background-color: #ffffff;
-      color: #4632e2;
-      border-color: #4632e2;
+      color: var(--color-primary);
+      border-color: var(--color-primary);
       transform: translateY(-1px);
       box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
@@ -174,9 +174,9 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        background: white;
+        background: var(--color-card-bg);
         border: 1px solid #e5e7eb;
-        color: #4632e2;
+        color: var(--color-primary);
         font-weight: 600;
         cursor: pointer;
         padding: 0.6rem 1.2rem;
@@ -188,13 +188,14 @@
         &:hover {
           transform: translateX(-4px);
           background: #f9fafb;
-          border-color: #4632e2;
+          border-color: var(--color-primary);
           box-shadow: 0 4px 10px rgba(70, 50, 226, 0.1);
         }
       }
 
       .mini-search {
         flex: 1;
+        min-width: 0;
         max-width: 500px;
       }
     }
@@ -202,7 +203,7 @@
     .results-title {
       font-size: 1.8rem;
       font-weight: 800;
-      color: #111827;
+      color: var(--color-heading);
       margin: 0;
       position: relative;
       padding-bottom: 0.5rem;
@@ -214,7 +215,7 @@
         left: 0;
         width: 60px;
         height: 4px;
-        background: #4632e2;
+        background: var(--color-primary);
         border-radius: 2px;
       }
     }
@@ -240,8 +241,23 @@ app-article-list {
   position: sticky;
   top: 0;
   display: flex;
-  background: #fdfdfd;
+  background: var(--color-card-bg);
   border-right: 1px solid #e5e7eb;
   z-index: 10;
   box-shadow: 4px 0 10px rgba(0,0,0,0.02);
+}
+
+@media (max-width: 768px) {
+  .main {
+    flex-direction: column;
+  }
+
+  .wrapper--history {
+    height: auto;
+    position: static;
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+  }
 }

@@ -31,9 +31,23 @@
     </div>
   </ng-container>
 
-  <ng-container *ngIf="!isLoading">
-    @for (article of paginatedArticles; track article.productURL){
-      <app-article [article]="article"/>
+  <ng-container *ngIf="!isLoading && hasError">
+    <div class="search-error-state">
+      <i class="pi pi-exclamation-triangle"></i>
+      <p>La recherche a échoué. Vérifiez votre connexion et réessayez.</p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="!isLoading && !hasError">
+    @if (paginatedArticles.length === 0) {
+      <div class="search-empty-state">
+        <i class="pi pi-search"></i>
+        <p>Aucun résultat trouvé pour votre recherche.</p>
+      </div>
+    } @else {
+      @for (article of paginatedArticles; track article.productURL){
+        <app-article [article]="article"/>
+      }
     }
   </ng-container>
 </div>

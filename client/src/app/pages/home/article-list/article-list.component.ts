@@ -32,6 +32,7 @@ export class ArticleListComponent implements OnInit{
   pageSize: number = 10;
   totalPages: number = 0;
   isLoading: boolean = false;
+  hasError: boolean = false;
 
   constructor(private articlesService:ArticleService, private loaderService: LoaderService) {
   }
@@ -39,10 +40,16 @@ export class ArticleListComponent implements OnInit{
   ngOnInit(): void {
     this.loaderService.loadingSubject.subscribe(loading => {
       this.isLoading = loading;
+      if (loading) {
+        this.hasError = false;
+      }
     });
     this.articlesService.articleSubject.subscribe(articles => {
       this.allArticles = articles;
       this.applyFiltersAndSort();
+    });
+    this.articlesService.errorSubject.subscribe(() => {
+      this.hasError = true;
     });
     this.articlesService.next();
   }

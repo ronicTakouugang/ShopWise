@@ -1,22 +1,22 @@
 <div class="main">
   <div class="wrapper--history">
-    <app-history [searchCmp]="searchCmp"></app-history>
+    <app-history></app-history>
   </div>
   <div class="main-content">
-    <section class="hero-section" *ngIf="!hasResults">
+    <section class="hero-section" *ngIf="!hasSearched">
       <div class="hero-content">
         <h1 class="main-title">Comparez. Économisez.</h1>
         <p class="subtitle">Le bon prix, partout, en un clic.</p>
 
         <div class="search-wrapper">
-          <app-search #searchCmp></app-search>
+          <app-search></app-search>
         </div>
 
         <div class="popular-tags">
           <span class="tag-label">Suggestions :</span>
-          <button class="tag" (click)="searchCmp.find('Casque')">Casque</button>
-          <button class="tag" (click)="searchCmp.find('Trottinette')">Trottinette</button>
-          <button class="tag" (click)="searchCmp.find('Chargeur')">Chargeur</button>
+          <button class="tag" (click)="articleService.search('Casque')">Casque</button>
+          <button class="tag" (click)="articleService.search('Trottinette')">Trottinette</button>
+          <button class="tag" (click)="articleService.search('Chargeur')">Chargeur</button>
         </div>
       </div>
 
@@ -28,14 +28,14 @@
     </section>
 
     <div class="wrapper list--wrapper">
-      <div class="results-header" *ngIf="hasResults">
+      <div class="results-header" *ngIf="hasSearched">
         <div class="search-nav">
           <button class="back-to-home" (click)="clearSearch()">
             <i class="pi pi-arrow-left"></i>
             Retour à l'accueil
           </button>
           <div class="mini-search">
-            <app-search #searchCmpResults></app-search>
+            <app-search></app-search>
           </div>
         </div>
         <h2 class="results-title">Résultats de votre recherche</h2>

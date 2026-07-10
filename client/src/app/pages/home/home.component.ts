@@ -1,4 +1,4 @@
-import {Component, CUSTOM_ELEMENTS_SCHEMA, OnInit, ViewChild} from '@angular/core';
+import {Component, CUSTOM_ELEMENTS_SCHEMA, OnInit} from '@angular/core';
 import {ArticleListComponent} from './article-list/article-list.component';
 import {SearchComponent} from './search/search.component';
 import {HistoryComponent} from './history/history.component';
@@ -19,20 +19,23 @@ import {CommonModule} from '@angular/common';
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class HomeComponent implements OnInit {
-  @ViewChild('searchCmp') searchCmp!: SearchComponent;
-  @ViewChild('searchCmpResults') searchCmpResults!: SearchComponent;
+  // true dès qu'une recherche a été effectuée (même sans résultat), pour ne pas
+  // ré-afficher la page d'accueil par-dessus l'état "aucun résultat"/erreur.
+  hasSearched: boolean = false;
 
-  hasResults: boolean = false;
-
-  constructor(private articleService: ArticleService) {}
+  constructor(public articleService: ArticleService) {}
 
   ngOnInit() {
-    this.articleService.articleSubject.subscribe(articles => {
-      this.hasResults = articles.length > 0;
+    this.articleService.articleSubject.subscribe(() => {
+      this.hasSearched = true;
+    });
+    this.articleService.errorSubject.subscribe(() => {
+      this.hasSearched = true;
     });
   }
 
   clearSearch() {
     this.articleService.clearArticles();
+    this.hasSearched = false;
   }
 }

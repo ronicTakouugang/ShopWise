@@ -3,6 +3,7 @@ import {Article} from './article';
 import {catchError, Subject, tap, throwError, timeout} from 'rxjs';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
+import {HistoryService} from '../../history/services/history.service';
 
 @Injectable({
   providedIn: 'root'
@@ -11,9 +12,10 @@ export class ArticleService {
 
   private articles:Article[] = [];
   public articleSubject:Subject<Article[]> = new Subject<Article[]>();
+  public errorSubject:Subject<void> = new Subject<void>();
   private apiUrl = environment.apiUrl;
 
-  constructor(private http:HttpClient) { }
+  constructor(private http:HttpClient, private historyService: HistoryService) { }
 
   clearArticles() {
     this.articles = [];
@@ -40,5 +42,21 @@ export class ArticleService {
         return throwError(err);
       })
     );
+  }
+
+  /**
+   * Déclenche une recherche indépendamment de tout composant (utilisé par l'historique
+   * et les suggestions de la page d'accueil, qui n'ont pas de référence à SearchComponent).
+   */
+  search(term: string): void {
+    if (!term || !term.trim()) return;
+    this.findProduct(term)
+      .pipe(
+        tap(() => this.historyService.add(term))
+      )
+      .subscribe({
+        next: () => this.next(),
+        error: () => this.errorSubject.next()
+      });
   }
 }

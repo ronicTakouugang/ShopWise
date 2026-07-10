@@ -2,12 +2,18 @@ import { Routes, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { map } from 'rxjs';
 import { AuthService } from './shareds/AuthModule/auth.service';
+import { ToastService } from './shareds/toast/services/toast.service';
 
 const authGuard = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
+  const toastService = inject(ToastService);
   return authService.whenAuthChecked().pipe(
-    map(isAuth => isAuth ? true : router.parseUrl('/home'))
+    map(isAuth => {
+      if (isAuth) return true;
+      toastService.showWarnCustom('Connectez-vous pour accéder à cette page.', 'Connexion requise');
+      return router.parseUrl('/home');
+    })
   );
 };
 
@@ -33,5 +39,15 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/profile/profile.component')
       .then(m => m.ProfileComponent),
+  },
+  {
+    path: "dashboard",
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/dashboard/dashboard.component')
+      .then(m => m.DashboardComponent),
+  },
+  {
+    path: "**",
+    redirectTo: "home"
   },
 ];

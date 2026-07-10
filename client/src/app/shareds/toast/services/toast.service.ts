@@ -28,6 +28,10 @@ export class ToastService {
     this.messageService.add({ severity: 'warn', summary: 'Attention', detail: 'Action requise' });
   }
 
+  showWarnCustom(detail: string, summary: string = 'Attention') {
+    this.messageService.add({ severity: 'warn', summary: summary, detail: detail });
+  }
+
   showError(s: string, summary: string = 'Erreur') {
     this.messageService.add({ severity: 'error', summary: summary, detail: s });
   }

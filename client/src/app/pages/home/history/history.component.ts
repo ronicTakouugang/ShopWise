@@ -1,15 +1,18 @@
-import {Component, CUSTOM_ELEMENTS_SCHEMA, Input, OnInit} from '@angular/core';
+import {Component, CUSTOM_ELEMENTS_SCHEMA, OnInit} from '@angular/core';
 import {Panel} from 'primeng/panel';
+import {FormsModule} from '@angular/forms';
 import {AuthService} from '../../../shareds/AuthModule/auth.service';
 import {Histor} from './services/histor';
 import {HistoryService} from './services/history.service';
-import {SearchComponent} from '../search/search.component';
+import {ArticleService} from '../article-list/service/article.service';
+import {ToastService} from '../../../shareds/toast/services/toast.service';
 
 
 @Component({
   selector: 'app-history',
   imports: [
-    Panel
+    Panel,
+    FormsModule
   ],
   templateUrl: './history.component.html',
   standalone: true,
@@ -18,19 +21,29 @@ import {SearchComponent} from '../search/search.component';
 })
 export class HistoryComponent implements OnInit{
 
-  @Input() searchCmp!: SearchComponent;
-
-  constructor(public authService: AuthService,public historyService: HistoryService) {
+  constructor(public authService: AuthService,public historyService: HistoryService, private toastService: ToastService, public articleService: ArticleService) {
   }
 
   ngOnInit() {
   }
 
   toggleNotifications(histor: Histor) {
+    if (!this.authService.isAuth) {
+      this.toastService.showWarnCustom('Connectez-vous pour activer les alertes de prix.', 'Connexion requise');
+      return;
+    }
     histor.notifications = !histor.notifications;
     this.historyService.saveToLocal();
     if (histor.notifications)
       this.historyService.save(histor).subscribe();
+  }
+
+  onThresholdChange(histor: Histor, value: number) {
+    histor.thresholdPercent = value > 0 ? value : null;
+    this.historyService.saveToLocal();
+    if (histor.notifications) {
+      this.historyService.save(histor).subscribe();
+    }
   }
 
   remove(histor: Histor) {

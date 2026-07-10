@@ -9,7 +9,18 @@
     <p>Gérez vos informations personnelles et vos préférences.</p>
   </div>
 
-  <div class="profile-card">
+  <div *ngIf="loadingProfile" class="loading-state">
+    <i class="pi pi-spin pi-spinner"></i>
+    <p>Chargement de votre profil...</p>
+  </div>
+
+  <div *ngIf="!loadingProfile && profileLoadError" class="error-state">
+    <i class="pi pi-exclamation-triangle"></i>
+    <p>Impossible de charger votre profil.</p>
+    <button pButton label="Réessayer" icon="pi pi-refresh" (click)="loadProfile()"></button>
+  </div>
+
+  <div class="profile-card" *ngIf="!loadingProfile && !profileLoadError">
     <div class="section">
       <h3>Informations personnelles</h3>
       <div class="field">

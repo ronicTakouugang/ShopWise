@@ -23,7 +23,10 @@
         <h4>Evolution du prix</h4>
         <button (click)="showHistory = false"><i class="pi pi-times"></i></button>
       </div>
-      <div class="history-list" *ngIf="priceHistory.length > 0">
+      <div class="history-chart" *ngIf="priceHistory.length > 1">
+        <p-chart type="line" [data]="chartData" [options]="chartOptions" [style]="{height: '160px'}"></p-chart>
+      </div>
+      <div class="history-list" *ngIf="priceHistory.length === 1">
         <div class="history-item" *ngFor="let h of priceHistory">
           <span class="history-date">{{h.date | date:'dd/MM/yy'}}</span>
           <span class="history-price">{{h.price}}€</span>

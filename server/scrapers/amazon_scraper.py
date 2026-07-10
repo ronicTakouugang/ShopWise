@@ -44,7 +44,10 @@ def scrape_records(item):
                 a_tag = title_container.find("a")
                 if a_tag:
                     description = a_tag.get_text(strip=True)
-            a_tag = title_container.find("a")
+            # Le premier <a> du conteneur n'est pas toujours le lien produit (Amazon y insère
+            # parfois des liens JS ou de comparaison) : on cible spécifiquement un lien /dp/,
+            # même filtre déjà utilisé par le fallback ci-dessous.
+            a_tag = title_container.find("a", href=re.compile("/dp/"))
             if a_tag and a_tag.has_attr("href"):
                 product_url = "https://amazon.com" + a_tag["href"]
         # Fallback en cas d'absence du container principal

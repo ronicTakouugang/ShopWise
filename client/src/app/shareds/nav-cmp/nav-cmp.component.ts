@@ -10,9 +10,10 @@ import {BadgeModule} from 'primeng/badge';
 import {Badge} from 'primeng/badge';
 import {Popover} from 'primeng/popover';
 import {CommonModule} from '@angular/common';
-import {Router} from '@angular/router';
+import {Router, RouterLink, RouterLinkActive} from '@angular/router';
 import {HttpClient} from '@angular/common/http';
 import {environment} from '../../../environments/environment';
+import {ThemeService} from '../theme/theme.service';
 
 interface AppNotification {
   id: number;
@@ -32,7 +33,9 @@ interface AppNotification {
     CommonModule,
     BadgeModule,
     Badge,
-    Popover
+    Popover,
+    RouterLink,
+    RouterLinkActive
   ],
   templateUrl: './nav-cmp.component.html',
   standalone: true,
@@ -56,13 +59,6 @@ export class NavCmpComponent implements OnInit {
       }
     },
     {
-      label: 'Mes Favoris',
-      icon: 'pi pi-heart',
-      command: () => {
-        this.router.navigate(['/favorites']);
-      }
-    },
-    {
       separator: true
     },
     {
@@ -74,7 +70,7 @@ export class NavCmpComponent implements OnInit {
     }
   ];
 
-  constructor(public authSer:AuthService, public router: Router, private historyService: HistoryService, private http: HttpClient) {
+  constructor(public authSer:AuthService, public router: Router, private historyService: HistoryService, private http: HttpClient, public themeService: ThemeService) {
   }
 
   ngOnInit() {

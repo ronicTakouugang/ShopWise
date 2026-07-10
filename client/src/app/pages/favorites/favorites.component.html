@@ -25,7 +25,17 @@
     <p>Chargement de vos favoris...</p>
   </div>
 
-  <div *ngIf="!loading && favorites.length === 0" class="empty-state">
+  <div *ngIf="!loading && loadError" class="error-state">
+    <i class="pi pi-exclamation-triangle"></i>
+    <h2>Impossible de charger vos favoris</h2>
+    <p>Une erreur est survenue. Vérifiez votre connexion et réessayez.</p>
+    <button class="explore-btn" (click)="loadFavorites()">
+      <i class="pi pi-refresh"></i>
+      Réessayer
+    </button>
+  </div>
+
+  <div *ngIf="!loading && !loadError && favorites.length === 0" class="empty-state">
     <div class="empty-icon-container">
       <i class="pi pi-heart"></i>
     </div>
