@@ -61,6 +61,11 @@ class TestExtractPrice:
     def test_simple_euro_amount(self):
         assert extract_price("29.99 €") == 29.99
 
+    def test_narrow_nbsp_thousands_separator(self):
+        # Format utilisé par Auchan : espace fine insécable (U+202F) comme séparateur
+        # de milliers, ex. "2 099,00€".
+        assert extract_price("2 099,00€") == 2099.0
+
 
 class TestConvertToEuro:
     def test_fcfa_thousands_and_decimal_converts_plausibly(self):

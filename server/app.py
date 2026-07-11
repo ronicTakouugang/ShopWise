@@ -18,6 +18,7 @@ from scrapers.amazon_scraper import scrape_amazon
 from scrapers.glotehlo_scraper import scrape_glotelho
 from scrapers.walmart_scraper import scrape_walmart
 from scrapers.leclerc_scraper import scrape_leclerc
+from scrapers.auchan_scraper import scrape_auchan
 
 import os
 from dotenv import load_dotenv
@@ -295,13 +296,14 @@ def do_search(query: str) -> list:
     Les scrapers tournent en parallèle sous un délai commun : un site lent ou en erreur
     est simplement écarté, sans jamais retarder les résultats des autres sites.
     """
-    executor = ThreadPoolExecutor(max_workers=4)
+    executor = ThreadPoolExecutor(max_workers=5)
     try:
         futures = {
             executor.submit(scrape_amazon, query): "Amazon",
             executor.submit(scrape_glotelho, query): "Glotelho",
             executor.submit(scrape_walmart, query): "Walmart",
             executor.submit(scrape_leclerc, query): "Leclerc",
+            executor.submit(scrape_auchan, query): "Auchan",
         }
 
         # Un seul délai partagé pour les 4 scrapers en même temps : un site lent
@@ -331,12 +333,13 @@ def do_search(query: str) -> list:
         glotehlo_records = results_by_source.get("Glotelho", [])
         walmart_records = results_by_source.get("Walmart", [])
         leclerc_records = results_by_source.get("Leclerc", [])
+        auchan_records = results_by_source.get("Auchan", [])
     finally:
         # wait=False : on ne bloque pas la réponse sur un scraper resté accroché en arrière-plan,
         # il se terminera de lui-même et sera simplement ignoré.
         executor.shutdown(wait=False)
 
-    combined_results = amazon_records + glotehlo_records + walmart_records + leclerc_records
+    combined_results = amazon_records + glotehlo_records + walmart_records + leclerc_records + auchan_records
 
     filtered_results = []
     seen_urls = set()
@@ -923,6 +926,7 @@ def subscribe():
 _LIVE_RECHECK_SCRAPERS = {
     "Glotehlo": scrape_glotelho,
     "E.Leclerc": scrape_leclerc,
+    "Auchan": scrape_auchan,
 }
 
 
