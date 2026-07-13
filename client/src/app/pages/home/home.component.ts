@@ -3,6 +3,7 @@ import {ArticleListComponent} from './article-list/article-list.component';
 import {SearchComponent} from './search/search.component';
 import {HistoryComponent} from './history/history.component';
 import {ArticleService} from './article-list/service/article.service';
+import {AuthService} from '../../shareds/AuthModule/auth.service';
 import {CommonModule} from '@angular/common';
 
 @Component({
@@ -19,7 +20,7 @@ import {CommonModule} from '@angular/common';
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class HomeComponent {
-  constructor(public articleService: ArticleService) {}
+  constructor(public articleService: ArticleService, public authService: AuthService) {}
 
   clearSearch() {
     this.articleService.clearArticles();

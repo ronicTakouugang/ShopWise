@@ -1,5 +1,5 @@
 <div class="main">
-  <div class="wrapper--history">
+  <div class="wrapper--history" *ngIf="authService.isAuth">
     <app-history></app-history>
   </div>
   <div class="main-content">
