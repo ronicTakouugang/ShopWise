@@ -15,6 +15,7 @@ from flask_cors import CORS
 
 import config
 from database import initialize_database
+from extensions import limiter
 from routes import register_blueprints
 from services import price_alert_service
 
@@ -23,7 +24,7 @@ app.secret_key = config.FLASK_SECRET_KEY
 
 # Configuration des cookies de session
 app.config.update(
-    SESSION_COOKIE_SECURE=False,  # Mettre à True en production avec HTTPS
+    SESSION_COOKIE_SECURE=config.SESSION_COOKIE_SECURE,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
 )
@@ -32,6 +33,7 @@ CORS(app, supports_credentials=True, origins=config.CORS_ALLOWED_ORIGINS)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 initialize_database()
+limiter.init_app(app)
 register_blueprints(app)
 
 

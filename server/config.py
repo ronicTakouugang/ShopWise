@@ -25,6 +25,9 @@ FIREBASE_CONFIG = {
 # --- Flask ---
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "default-secret-key")
 CORS_ALLOWED_ORIGINS = ["http://localhost:4200"]
+# En local (http://localhost) le cookie de session doit rester non-Secure, sinon le
+# navigateur le refuse. Passer SESSION_COOKIE_SECURE=true en production (HTTPS).
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
 
 # --- SMTP (emails d'alerte de baisse de prix) ---
 SMTP_SERVER = os.getenv("SMTP_SERVER")

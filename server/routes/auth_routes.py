@@ -3,12 +3,14 @@ import logging
 
 from flask import Blueprint, jsonify, request, session
 
+from extensions import limiter
 from services import auth_service
 
 auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route('/register', methods=['POST'])
+@limiter.limit("5 per minute")
 def register():
     """
     Crée un nouvel utilisateur via Firebase.
@@ -39,6 +41,7 @@ def register():
 
 
 @auth_bp.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def login():
     """
     Connecte un utilisateur en vérifiant ses identifiants via Firebase.
@@ -88,6 +91,7 @@ def get_status():
 
 
 @auth_bp.route('/forgot_password', methods=['POST'])
+@limiter.limit("3 per minute")
 def forgot_password():
     """Envoie un email de réinitialisation de mot de passe via Firebase."""
     forgot_password_payload = request.get_json()
