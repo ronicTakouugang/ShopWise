@@ -1,6 +1,7 @@
 import {Component, CUSTOM_ELEMENTS_SCHEMA, EventEmitter, Input, OnInit, Output} from '@angular/core';
 import {Article} from '../service/article';
 import {CommonModule, DatePipe} from '@angular/common';
+import {FormsModule} from '@angular/forms';
 import {HttpClient, HttpContext} from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 import {AuthService} from '../../../../shareds/AuthModule/auth.service';
@@ -12,6 +13,7 @@ import {SKIP_LOADER} from '../../../../shareds/loader/services/loader.intercepto
   selector: 'app-article',
   imports: [
     CommonModule,
+    FormsModule,
     ChartModule
   ],
   templateUrl: './article.component.html',
@@ -27,6 +29,8 @@ export class ArticleComponent {
   @Output() favoriteChanged = new EventEmitter<boolean>();
 
   isFavorite: boolean = false;
+  isSubscribed: boolean = false;
+  thresholdPercent: number | null = null;
   showHistory: boolean = false;
   priceHistory: any[] = [];
   chartData: any = null;
@@ -45,6 +49,7 @@ export class ArticleComponent {
 
   ngOnInit() {
     this.isFavorite = this.article.isFavorite || false;
+    this.isSubscribed = this.article.isSubscribed || false;
   }
 
   goToUrl() {
@@ -72,6 +77,45 @@ export class ArticleComponent {
           this.favoriteChanged.emit(true);
           this.toastService.showSuccessCustom('Produit ajouté aux favoris', 'Favoris');
         });
+    }
+  }
+
+  toggleSubscription(event: Event) {
+    event.stopPropagation();
+    if (!this.authService.isAuth) {
+      this.toastService.showWarnCustom('Connectez-vous pour activer les alertes de prix.', 'Connexion requise');
+      return;
+    }
+
+    const context = new HttpContext().set(SKIP_LOADER, true);
+    if (this.isSubscribed) {
+      this.http.post(`${this.apiUrl}/subscribe/remove`, { productURL: this.article.productURL }, { withCredentials: true, context })
+        .subscribe(() => {
+          this.isSubscribed = false;
+          this.toastService.showSuccessCustom('Alerte de prix désactivée', 'Alertes');
+        });
+    } else {
+      this.http.post(`${this.apiUrl}/subscribe`, {
+        productURL: this.article.productURL,
+        price: this.article.price,
+        threshold_percent: this.thresholdPercent
+      }, { withCredentials: true, context })
+        .subscribe(() => {
+          this.isSubscribed = true;
+          this.toastService.showSuccessCustom('Alerte de prix activée', 'Alertes');
+        });
+    }
+  }
+
+  onThresholdChange(value: number) {
+    this.thresholdPercent = value > 0 ? value : null;
+    if (this.isSubscribed) {
+      const context = new HttpContext().set(SKIP_LOADER, true);
+      this.http.post(`${this.apiUrl}/subscribe`, {
+        productURL: this.article.productURL,
+        price: this.article.price,
+        threshold_percent: this.thresholdPercent
+      }, { withCredentials: true, context }).subscribe();
     }
   }
 

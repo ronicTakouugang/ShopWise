@@ -12,4 +12,5 @@ export interface Article {
   numeric_price?: number;
   relevance_score?: number;
   isFavorite?: boolean;
+  isSubscribed?: boolean;
 }

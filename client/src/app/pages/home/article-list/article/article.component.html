@@ -9,6 +9,15 @@
     <button class="favorite-btn" [class.active]="isFavorite" (click)="toggleFavorite($event)" *ngIf="authService.isAuth">
       <i class="pi" [ngClass]="isFavorite ? 'pi-heart-fill' : 'pi-heart'"></i>
     </button>
+    <button
+      class="alert-btn"
+      [class.active]="isSubscribed"
+      [attr.aria-label]="isSubscribed ? 'Désactiver l\'alerte de prix' : 'Activer une alerte de prix'"
+      [title]="isSubscribed ? 'Alerte de prix activée' : 'Recevoir une alerte si le prix baisse'"
+      (click)="toggleSubscription($event)"
+      *ngIf="authService.isAuth">
+      <i class="pi" [ngClass]="isSubscribed ? 'pi-bell' : 'pi-bell-slash'"></i>
+    </button>
     <div class="price-drop-badge" *ngIf="article.oldPrice && isFavorite">
       BAISSE !
     </div>
@@ -48,6 +57,17 @@
     <div class="price-container">
       <span class="price-value">{{article.price}}</span>
       <span class="old-price" *ngIf="article.oldPrice && article.oldPrice !== 'N/A'">{{article.oldPrice}}</span>
+    </div>
+
+    <div class="alert-threshold" *ngIf="isSubscribed" (click)="$event.stopPropagation()">
+      <i class="pi pi-bell"></i>
+      <select [ngModel]="thresholdPercent ?? 0" (ngModelChange)="onThresholdChange($event)" title="Seuil de baisse pour déclencher l'alerte">
+        <option [ngValue]="0">Toute baisse</option>
+        <option [ngValue]="5">-5% ou plus</option>
+        <option [ngValue]="10">-10% ou plus</option>
+        <option [ngValue]="20">-20% ou plus</option>
+        <option [ngValue]="30">-30% ou plus</option>
+      </select>
     </div>
 
     <div class="card-footer">

@@ -14,29 +14,6 @@
             <span class="search-time">{{ relativeTime(histor.id) }}</span>
           </div>
           <div class="histor--actions">
-            @if (histor.notifications) {
-              <select
-                class="threshold-select"
-                [ngModel]="histor.thresholdPercent ?? 0"
-                (ngModelChange)="onThresholdChange(histor, $event)"
-                (click)="$event.stopPropagation()"
-                title="Seuil de baisse pour déclencher l'alerte">
-                <option [ngValue]="0">Toute baisse</option>
-                <option [ngValue]="5">-5% ou plus</option>
-                <option [ngValue]="10">-10% ou plus</option>
-                <option [ngValue]="20">-20% ou plus</option>
-                <option [ngValue]="30">-30% ou plus</option>
-              </select>
-            }
-            <button
-              type="button"
-              class="action-btn notify-btn"
-              [class.active]="histor.notifications"
-              [attr.aria-label]="histor.notifications ? 'Désactiver les alertes' : 'Activer les alertes'"
-              [title]="histor.notifications ? 'Alertes activées' : (authService.isAuth ? 'Recevoir des alertes' : 'Connexion requise pour les alertes')"
-              (click)="toggleNotifications(histor); $event.stopPropagation()">
-              <i class="pi" [class.pi-bell]="histor.notifications" [class.pi-bell-slash]="!histor.notifications"></i>
-            </button>
             <button
               type="button"
               class="action-btn delete-btn"

@@ -139,6 +139,41 @@
         background: var(--color-card-bg);
       }
     }
+
+    .alert-btn {
+      position: absolute;
+      top: 55px;
+      right: 12px; // Sous history-btn, même colonne
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 5;
+      color: #9ca3af;
+      backdrop-filter: blur(4px);
+
+      i {
+        font-size: 1.1rem;
+      }
+
+      &:hover {
+        transform: scale(1.15);
+        color: #f59e0b;
+        background: var(--color-card-bg);
+      }
+
+      &.active {
+        color: #f59e0b !important;
+        background: var(--color-card-bg);
+      }
+    }
   }
 
   @keyframes heartBeat {
@@ -245,6 +280,28 @@
         color: #9ca3af;
         text-decoration: line-through;
         font-weight: 500;
+      }
+    }
+
+    .alert-threshold {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: -2px;
+
+      i {
+        font-size: 0.85rem;
+        color: #f59e0b;
+      }
+
+      select {
+        font-size: 0.75rem;
+        color: var(--color-muted);
+        background: var(--color-card-bg);
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 2px 4px;
+        cursor: pointer;
       }
     }
 

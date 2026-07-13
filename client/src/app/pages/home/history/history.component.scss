@@ -121,33 +121,9 @@
         }
       }
 
-      .notify-btn.active {
-        color: #f59e0b;
-        opacity: 1;
-        pointer-events: auto;
-
-        &:hover {
-          background: #fef3c7;
-          color: #d97706;
-        }
-      }
-
       .delete-btn:hover {
         background: #fee2e2;
         color: #dc2626;
-      }
-
-      .threshold-select {
-        opacity: 1;
-        pointer-events: auto;
-        font-size: 0.7rem;
-        color: var(--color-muted);
-        background: var(--color-card-bg);
-        border: 1px solid #e5e7eb;
-        border-radius: 6px;
-        padding: 2px 4px;
-        max-width: 90px;
-        cursor: pointer;
       }
     }
   }
