@@ -30,8 +30,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build (catches compile errors)
-        run: npx ng build --configuration development
+      - name: Build (production config - same one used for deployment)
+        run: npx ng build --configuration production
 
       - name: Resolve Puppeteer's bundled Chromium path
         run: echo "CHROME_BIN=$(node -e "require('puppeteer').executablePath().then(p => console.log(p))")" >> "$GITHUB_ENV"

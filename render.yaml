@@ -1,0 +1,77 @@
+# Blueprint Render : déploie le serveur Flask (web service Docker), le client
+# Angular (static site) et une base Postgres, tous sur le free tier.
+# Doc : https://render.com/docs/blueprint-spec
+#
+# À faire une fois le blueprint appliqué (dashboard Render) :
+# - Remplir les variables marquées "sync: false" (Firebase, SMTP) : ce sont des
+#   secrets, ils ne doivent jamais être committés dans ce fichier.
+# - Le Postgres free tier de Render expire après 90 jours d'inactivité : le
+#   recréer (et remettre à jour DATABASE_URL) si besoin.
+databases:
+  - name: shopwise-db
+    plan: free
+    databaseName: shopwise
+    user: shopwise
+
+services:
+  - type: web
+    name: shopwise-server
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: shopwise-db
+          property: connectionString
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      # Manuel plutôt que fromService : il faut l'URL complète avec schéma
+      # (https://shopwise-client-xxxx.onrender.com), connue seulement après le
+      # premier déploiement du static site.
+      - key: CORS_ORIGIN
+        sync: false
+      - key: FIREBASE_API_KEY
+        sync: false
+      - key: FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+      - key: FIREBASE_APP_ID
+        sync: false
+      - key: FIREBASE_MEASUREMENT_ID
+        sync: false
+      - key: FIREBASE_DATABASE_URL
+        sync: false
+      - key: SMTP_SERVER
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+
+  - type: web
+    name: shopwise-client
+    runtime: static
+    buildCommand: cd client && npm ci && npx ng build --configuration production
+    staticPublishPath: client/dist/shop-wise/browser
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+    routes:
+      # SPA Angular : toute route inconnue du static site (ex: /favorites après un
+      # rechargement de page) doit servir index.html, pas un 404.
+      - type: rewrite
+        source: /*
+        destination: /index.html
