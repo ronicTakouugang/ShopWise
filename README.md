@@ -1,146 +1,128 @@
 # ShopWise
 
-ShopWise is a multi-retailer price comparison app. It searches several
-e-commerce sites in parallel for a given product, normalizes and deduplicates
-the results, and shows them side by side so you can find the best price. It
-also tracks price history per product and can alert a user by email and
-in-app notification when the price of a product they follow drops.
+ShopWise est une application de comparaison de prix multi-enseignes. Elle
+recherche un produit simultanément sur plusieurs sites e-commerce, normalise
+et déduplique les résultats, puis les affiche côte à côte pour trouver le
+meilleur prix. Elle suit aussi l'historique de prix de chaque produit et peut
+alerter un utilisateur par email et notification in-app quand le prix d'un
+produit suivi baisse.
 
-![ShopWise search results](docs/screenshot.png)
+![Résultats de recherche ShopWise](docs/screenshot.png)
 
-## Features
+## Fonctionnalités
 
-- **Multi-retailer search**: Amazon, Walmart, Glotelho, E.Leclerc and Auchan
-  are scraped in parallel for each query, with a shared timeout so one slow
-  or blocked site never delays the others.
-- **Relevance ranking**: results are scored on keyword match, image/price
-  availability and popularity, then sorted by relevance and price.
-- **Price history**: every time a product's price changes, a new data point
-  is recorded; a chart on each product card shows the trend over time.
-- **Per-product price alerts**: users can turn on an alert for a specific
-  product (with an optional minimum drop percentage) directly from its
-  product card, rather than for an entire search. A background job checks
-  subscribed products periodically and sends an email and/or in-app
-  notification when the price drops.
-- **Favorites and personal lists**: save products and organize them into
-  custom lists.
-- **Search history**: recent searches are kept locally per browser and can
-  be replayed with one click (only shown to signed-in users).
-- **Analytics dashboard**: most frequent searches, price statistics per
-  retailer, recent price drops and tracked-product counts.
-- **Authentication**: email/password accounts via Firebase, with a
-  server-side session cookie.
+- **Recherche multi-enseignes** : Amazon, Walmart, Glotelho, E.Leclerc et
+  Auchan sont interrogés en parallèle pour chaque recherche, avec un délai
+  commun pour qu'un site lent ou bloqué ne retarde jamais les autres.
+- **Classement par pertinence** : les résultats sont notés selon la
+  correspondance avec les mots-clés, la disponibilité d'une image/d'un prix
+  et la popularité, puis triés par pertinence et par prix.
+- **Historique de prix** : chaque changement de prix d'un produit est
+  enregistré ; un graphique sur la carte produit montre son évolution.
+- **Alertes de prix par produit** : un utilisateur peut activer une alerte
+  sur un produit précis (avec un seuil de baisse minimal optionnel)
+  directement depuis sa carte produit, plutôt que pour une recherche entière.
+  Une vérification périodique en arrière-plan envoie un email et/ou une
+  notification in-app quand le prix baisse.
+- **Favoris et listes personnalisées** : sauvegarder des produits et les
+  organiser dans des listes.
+- **Historique de recherche** : les recherches récentes sont conservées
+  localement par navigateur et peuvent être relancées en un clic (visible
+  uniquement pour les utilisateurs connectés).
+- **Tableau de bord analytique** : recherches les plus fréquentes,
+  statistiques de prix par enseigne, baisses de prix récentes et nombre de
+  produits suivis.
+- **Authentification** : comptes email/mot de passe via Firebase, avec une
+  session gérée côté serveur.
 
 ## Architecture
 
-The client and server are independent applications that only communicate
-over HTTP; either can be deployed on its own.
+Le client et le serveur sont deux applications indépendantes qui ne
+communiquent que par HTTP ; chacune peut être déployée séparément.
 
-```mermaid
-flowchart TB
-    subgraph Client["Client - Angular 19 + PrimeNG"]
-        UI["Pages: home, favorites, profile, dashboard"]
-    end
+![Architecture de ShopWise](docs/architecture.png)
 
-    subgraph Server["Server - Flask"]
-        Routes["routes/ - HTTP endpoints (Blueprints)"]
-        Services["services/ - business logic\n(search, price alerts, auth)"]
-        Repositories["repositories/ - SQL data access"]
-        DB[("database.py\nSQLite (dev) / Postgres (prod)")]
-        Scrapers["scrapers/ - one module per retailer"]
-    end
+Le serveur est lui-même découpé en couches, chacune avec une seule
+responsabilité :
 
-    Firebase[("Firebase Auth")]
-    Sites["Amazon - Walmart - Glotelho\nE.Leclerc - Auchan"]
+- **`routes/`** : un Blueprint Flask par domaine fonctionnel
+  (authentification, recherche, favoris, abonnements, profil, listes,
+  notifications, analytics, vérification des prix). Une route ne fait que
+  traduire une requête HTTP en appel à un service et le résultat en réponse
+  JSON ; elle ne contient aucune logique métier et c'est le seul endroit où
+  `session`/`request` sont manipulés.
+- **`services/`** : la logique métier. `search_service` (orchestration des
+  scrapers, cache, calcul de pertinence, persistance du catalogue),
+  `price_alert_service` (récupération du prix actuel, logique de seuil,
+  envoi des alertes), `auth_service` (fine surcouche autour de Firebase).
+  Aucun service n'importe Flask, ce qui les rend testables isolément.
+- **`repositories/`** : le seul endroit où du SQL est écrit. Chaque fichier
+  gère une table (ou un petit groupe de tables liées) et expose des
+  fonctions simples (`get_favorites_by_email`, `upsert_subscription`, ...).
+  Aucune logique métier n'y vit.
+- **`database.py`** : ouverture de connexion et schéma. Supporte SQLite
+  (par défaut, utilisé en local) et Postgres (utilisé en production, via la
+  variable d'environnement `DATABASE_URL`) derrière la même interface, pour
+  que les repositories n'aient pas à connaître le moteur utilisé.
+- **`scrapers/`** : un module par enseigne, chacun exposant une seule
+  fonction `scrape_<site>(query)` qui retourne une liste de résultats
+  normalisés (titre, prix, image, note, URL du produit, ...).
 
-    UI -- "HTTP/JSON, session cookie" --> Routes
-    Routes --> Services
-    Services --> Repositories
-    Services --> Scrapers
-    Repositories --> DB
-    Scrapers -- "HTTP scraping" --> Sites
-    Services -- "sign up / sign in" --> Firebase
-```
+## Stack technique
 
-The server itself is layered so that each part has one job:
-
-- **`routes/`** - one Flask Blueprint per functional area (auth, search,
-  favorites, subscriptions, profile, lists, notifications, analytics,
-  price-check). Routes only translate HTTP requests into service calls and
-  service results into JSON responses; they contain no business logic and
-  are the only place session/request objects are touched.
-- **`services/`** - the business logic: `search_service` (scraper
-  orchestration, caching, relevance scoring, catalog persistence),
-  `price_alert_service` (current-price lookup, threshold logic, sending
-  alerts), `auth_service` (a thin wrapper around Firebase). Services never
-  import Flask and can be unit-tested in isolation.
-- **`repositories/`** - the only place SQL is written. Each file owns one
-  table (or a small group of related tables) and exposes plain functions
-  (`get_favorites_by_email`, `upsert_subscription`, ...). No business logic
-  lives here.
-- **`database.py`** - connection handling and schema. Supports SQLite
-  (default, used locally) and Postgres (used in production, selected via
-  the `DATABASE_URL` environment variable) behind the same interface, so
-  repositories don't need to know which one is active.
-- **`scrapers/`** - one module per retailer, each exposing a single
-  `scrape_<site>(query)` function that returns a normalized list of
-  records (title, price, image, rating, product URL, ...).
-
-## Tech stack
-
-| Layer | Technology |
+| Couche | Technologie |
 |---|---|
 | Client | Angular 19, PrimeNG, RxJS, Chart.js |
-| Server | Python, Flask, Flask-CORS, Flask-Limiter |
-| Scraping | curl_cffi (browser impersonation), BeautifulSoup |
-| Database | SQLite (development), Postgres (production) |
-| Auth | Firebase (Pyrebase on the server) |
-| Scheduling | APScheduler (periodic price checks) |
-| Testing | pytest (server), Jasmine/Karma (client) |
+| Serveur | Python, Flask, Flask-CORS, Flask-Limiter |
+| Scraping | curl_cffi (impersonation navigateur), BeautifulSoup |
+| Base de données | SQLite (développement), Postgres (production) |
+| Authentification | Firebase (Pyrebase côté serveur) |
+| Planification | APScheduler (vérification périodique des prix) |
+| Tests | pytest (serveur), Jasmine/Karma (client) |
 | CI | GitHub Actions |
-| Deployment | Docker, Render |
+| Déploiement | Docker, Render |
 
-## Project structure
+## Structure du projet
 
 ```
 ShopWise/
-├── client/                     Angular application
+├── client/                     Application Angular
 │   └── src/app/
-│       ├── pages/               home, favorites, profile, dashboard
+│       ├── pages/               accueil, favoris, profil, dashboard
 │       └── shareds/             auth, toast, loader, nav, theme
-├── server/                     Flask application
-│   ├── app.py                   builds the app, wires everything together
-│   ├── config.py                all environment variables read here
-│   ├── database.py               connection handling + schema (SQLite/Postgres)
-│   ├── extensions.py             shared Flask extensions (rate limiter)
-│   ├── routes/                   HTTP endpoints (Blueprints)
-│   ├── services/                 business logic
-│   ├── repositories/             SQL data access
-│   ├── scrapers/                 one module per retailer
-│   ├── utils.py                  shared parsing/formatting helpers
-│   └── test_*.py                 pytest suite
-├── render.yaml                  Render deployment blueprint
-└── .github/workflows/           CI (server and client)
+├── server/                     Application Flask
+│   ├── app.py                   construit l'app et assemble le tout
+│   ├── config.py                toutes les variables d'environnement
+│   ├── database.py               connexion + schéma (SQLite/Postgres)
+│   ├── extensions.py             extensions Flask partagées (rate limiter)
+│   ├── routes/                   endpoints HTTP (Blueprints)
+│   ├── services/                 logique métier
+│   ├── repositories/             accès SQL
+│   ├── scrapers/                 un module par enseigne
+│   ├── utils.py                  utilitaires de parsing/formatage partagés
+│   └── test_*.py                 suite pytest
+├── render.yaml                  blueprint de déploiement Render
+└── .github/workflows/           CI (serveur et client)
 ```
 
-## Getting started
+## Démarrage
 
-### Prerequisites
+### Prérequis
 
-- Node.js 20+ and npm (client)
-- Python 3.11+ (server)
+- Node.js 20+ et npm (client)
+- Python 3.11+ (serveur)
 
-### Server
+### Serveur
 
 ```bash
 cd server
 python -m venv venv
-venv\Scripts\activate       # on Windows; use `source venv/bin/activate` on macOS/Linux
+venv\Scripts\activate       # sous Windows ; `source venv/bin/activate` sous macOS/Linux
 pip install -r requirements.txt
 ```
 
-Create a `.env` file in `server/` with at least the Firebase configuration
-(required for sign up/sign in to work):
+Créer un fichier `.env` dans `server/` avec au minimum la configuration
+Firebase (nécessaire pour que l'inscription/connexion fonctionne) :
 
 ```
 FIREBASE_API_KEY=...
@@ -150,21 +132,22 @@ FIREBASE_STORAGE_BUCKET=...
 FIREBASE_MESSAGING_SENDER_ID=...
 FIREBASE_APP_ID=...
 FIREBASE_DATABASE_URL=...
-FLASK_SECRET_KEY=some-random-string
+FLASK_SECRET_KEY=une-chaine-aleatoire
 ```
 
-SMTP variables (`SMTP_SERVER`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
-`SMTP_FROM_EMAIL`) are optional; without them, price-drop emails are skipped
-but in-app notifications still work. `DATABASE_URL` is optional too - omit it
-to use a local SQLite file.
+Les variables SMTP (`SMTP_SERVER`, `SMTP_PORT`, `SMTP_USERNAME`,
+`SMTP_PASSWORD`, `SMTP_FROM_EMAIL`) sont optionnelles : sans elles, les
+emails de baisse de prix sont simplement ignorés, mais les notifications
+in-app continuent de fonctionner. `DATABASE_URL` est optionnelle aussi :
+l'omettre pour utiliser un fichier SQLite local.
 
-Run the server:
+Lancer le serveur :
 
 ```bash
 python app.py
 ```
 
-The API listens on `http://localhost:5000`.
+L'API écoute sur `http://localhost:5000`.
 
 ### Client
 
@@ -174,14 +157,14 @@ npm install
 npm start
 ```
 
-The app is served on `http://localhost:4200` and expects the server to be
-running on `http://localhost:5000` (configured in
+L'application est servie sur `http://localhost:4200` et s'attend à ce que
+le serveur tourne sur `http://localhost:5000` (configuré dans
 `client/src/environments/environment.ts`).
 
-## Testing
+## Tests
 
 ```bash
-# Server (pytest)
+# Serveur (pytest)
 cd server
 pytest -v
 
@@ -190,14 +173,14 @@ cd client
 npm test
 ```
 
-Both suites run automatically on push/PR via GitHub Actions
-(`.github/workflows/server-tests.yml` and `client-tests.yml`).
+Les deux suites tournent automatiquement à chaque push/PR via GitHub Actions
+(`.github/workflows/server-tests.yml` et `client-tests.yml`).
 
-## Deployment
+## Déploiement
 
-`render.yaml` defines a Render Blueprint: a Docker web service for the
-server, a static site for the client, and a free Postgres database, wired
-together with environment variables. Secrets (Firebase, SMTP) are left
-unset in the blueprint and must be filled in manually from the Render
-dashboard after applying it. See the comments at the top of `render.yaml`
-for the exact steps.
+`render.yaml` définit un Blueprint Render : un service web Docker pour le
+serveur, un site statique pour le client, et une base Postgres gratuite,
+reliés entre eux par des variables d'environnement. Les secrets (Firebase,
+SMTP) sont volontairement absents du blueprint et doivent être renseignés
+manuellement depuis le dashboard Render une fois le blueprint appliqué. Voir
+les commentaires en tête de `render.yaml` pour la marche à suivre exacte.
