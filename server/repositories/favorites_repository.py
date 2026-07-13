@@ -1,12 +1,18 @@
 """Accès à la table `favorites`."""
 from database import get_connection
 
+_NUMERIC_PRICE_EXPRESSION = "CAST(REPLACE(REPLACE(price, '€', ''), ',', '.') AS REAL)"
+# Un prix sans valeur numérique (ex: "N/A") ne commence pas par un chiffre : ce
+# CASE le place toujours après les prix valides (0 = valide, 1 = inconnu), quel
+# que soit le sens du tri demandé, pour ne jamais le faire remonter en tête.
+_UNKNOWN_PRICE_LAST = "CASE WHEN price GLOB '[0-9]*' THEN 0 ELSE 1 END ASC"
+
 _SORT_CLAUSES = {
     # Le prix est stocké en texte avec le symbole "€" (ex: "19,99 €") : on le
     # nettoie à la volée pour trier numériquement. Idéalement ce serait une
     # colonne numérique dédiée, mais on garde le comportement existant tel quel.
-    "price_asc": "ORDER BY CAST(REPLACE(REPLACE(price, '€', ''), ',', '.') AS REAL) ASC",
-    "price_desc": "ORDER BY CAST(REPLACE(REPLACE(price, '€', ''), ',', '.') AS REAL) DESC",
+    "price_asc": f"ORDER BY {_UNKNOWN_PRICE_LAST}, {_NUMERIC_PRICE_EXPRESSION} ASC",
+    "price_desc": f"ORDER BY {_UNKNOWN_PRICE_LAST}, {_NUMERIC_PRICE_EXPRESSION} DESC",
     "date_added": "ORDER BY id DESC",  # approximé par l'ordre d'insertion (id)
 }
 

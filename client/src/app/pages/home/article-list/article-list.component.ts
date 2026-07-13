@@ -54,6 +54,24 @@ export class ArticleListComponent implements OnInit{
     this.articlesService.next();
   }
 
+  // Le backend attribue ce nombre très élevé aux produits sans prix connu
+  // (voir compute_deal_attributes côté serveur) : il ne faut jamais le traiter
+  // comme un vrai prix, sous peine de le voir remonter en tête en tri décroissant.
+  private static readonly UNKNOWN_PRICE_SENTINEL = 999999999;
+
+  private comparePricesWithUnknownsLast(a: Article, b: Article, ascending: boolean): number {
+    const priceA = a.numeric_price ?? ArticleListComponent.UNKNOWN_PRICE_SENTINEL;
+    const priceB = b.numeric_price ?? ArticleListComponent.UNKNOWN_PRICE_SENTINEL;
+    const aIsUnknown = priceA >= ArticleListComponent.UNKNOWN_PRICE_SENTINEL;
+    const bIsUnknown = priceB >= ArticleListComponent.UNKNOWN_PRICE_SENTINEL;
+
+    if (aIsUnknown && !bIsUnknown) return 1;
+    if (!aIsUnknown && bIsUnknown) return -1;
+    if (aIsUnknown && bIsUnknown) return 0;
+
+    return ascending ? priceA - priceB : priceB - priceA;
+  }
+
   applyFiltersAndSort(): void {
     let result = [...this.allArticles];
 
@@ -64,9 +82,9 @@ export class ArticleListComponent implements OnInit{
 
     // Tri
     if (this.sortBy === 'price_asc') {
-      result.sort((a, b) => (a.numeric_price || 0) - (b.numeric_price || 0));
+      result.sort((a, b) => this.comparePricesWithUnknownsLast(a, b, true));
     } else if (this.sortBy === 'price_desc') {
-      result.sort((a, b) => (b.numeric_price || 0) - (a.numeric_price || 0));
+      result.sort((a, b) => this.comparePricesWithUnknownsLast(a, b, false));
     } else if (this.sortBy === 'relevance') {
       result.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
     }
