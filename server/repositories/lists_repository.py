@@ -1,5 +1,5 @@
 """Accès aux tables `favorite_lists` et `favorite_list_items` (listes personnalisées)."""
-from database import get_connection
+from database import IS_POSTGRES, get_connection
 
 
 def get_lists_by_email(email: str) -> list:
@@ -10,8 +10,21 @@ def get_lists_by_email(email: str) -> list:
 
 
 def create_list(email: str, name: str) -> int:
-    """Crée une nouvelle liste de favoris personnalisée et retourne son id."""
+    """
+    Crée une nouvelle liste de favoris personnalisée et retourne son id.
+    cursor.lastrowid n'existe pas sur Postgres (psycopg2) : on utilise RETURNING id
+    à la place, non supporté par ce projet sur SQLite (Python bundle des versions
+    de SQLite antérieures à 3.35 sur certains systèmes), d'où la branche explicite.
+    """
     with get_connection() as connection:
+        if IS_POSTGRES:
+            cursor = connection.execute(
+                "INSERT INTO favorite_lists (email, name) VALUES (?, ?) RETURNING id",
+                (email, name)
+            )
+            connection.commit()
+            return cursor.fetchone()["id"]
+
         cursor = connection.execute(
             "INSERT INTO favorite_lists (email, name) VALUES (?, ?)",
             (email, name)

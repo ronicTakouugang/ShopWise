@@ -36,18 +36,27 @@ initialize_database()
 limiter.init_app(app)
 register_blueprints(app)
 
+#########################
+# Planification du job périodique de vérification des prix
+#########################
+# Au niveau module (pas dans `if __name__ == "__main__"`) : sous gunicorn (production),
+# ce fichier est importé et son objet `app` est utilisé directement, le bloc
+# `__main__` ne s'exécute jamais. En debug local, le reloader Flask relance ce
+# script dans un sous-processus : sans le garde WERKZEUG_RUN_MAIN, le scheduler
+# démarrerait deux fois (process parent + enfant) et doublerait le rythme réel
+# des price-checks. En production, prévoir un seul worker gunicorn (voir
+# Dockerfile) pour la même raison : plusieurs workers démarreraient chacun leur
+# propre scheduler.
+if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=price_alert_service.run_price_check, trigger="interval", hours=2)
+    scheduler.start()
+
 
 #########################
-# Lancement de l'application et du job planifié
+# Lancement du serveur de développement (inutilisé en production, voir Dockerfile)
 #########################
 if __name__ == "__main__":
-    # En debug, le reloader Flask relance ce script dans un sous-processus : sans ce garde,
-    # le scheduler démarrerait deux fois (process parent + enfant) et doublerait le rythme
-    # réel des price-checks.
-    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        scheduler = BackgroundScheduler()
-        scheduler.add_job(func=price_alert_service.run_price_check, trigger="interval", hours=2)
-        scheduler.start()
     try:
         app.run(debug=True, host="0.0.0.0", port=5000)
     except (KeyboardInterrupt, SystemExit):

@@ -9,3 +9,5 @@ deep-translator==1.11.4
 pandas==3.0.3
 pytest==9.1.1
 Flask-Limiter==4.1.1
+psycopg2-binary==2.9.12
+gunicorn==23.0.0

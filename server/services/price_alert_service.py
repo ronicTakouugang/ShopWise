@@ -112,7 +112,13 @@ def run_price_check() -> list:
     try:
         alerts_triggered = []
         for subscription in subscriptions_repository.get_all_subscriptions():
-            sub_id, product_url, baseline_price, email, threshold_percent = subscription
+            # Accès par nom de colonne plutôt que déballage positionnel : une ligne
+            # Postgres (RealDictRow) n'est pas un tuple, contrairement à sqlite3.Row.
+            sub_id = subscription["id"]
+            product_url = subscription["product_url"]
+            baseline_price = subscription["initial_price"]
+            email = subscription["email"]
+            threshold_percent = subscription["threshold_percent"]
             current_price = get_current_price(product_url)
             if current_price == float('inf'):
                 # Produit introuvable (pas encore dans articles, ou disparu) : on ignore

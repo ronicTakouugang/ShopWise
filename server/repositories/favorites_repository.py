@@ -1,11 +1,13 @@
 """Accès à la table `favorites`."""
-from database import get_connection
+from database import IS_POSTGRES, get_connection
 
 _NUMERIC_PRICE_EXPRESSION = "CAST(REPLACE(REPLACE(price, '€', ''), ',', '.') AS REAL)"
 # Un prix sans valeur numérique (ex: "N/A") ne commence pas par un chiffre : ce
 # CASE le place toujours après les prix valides (0 = valide, 1 = inconnu), quel
 # que soit le sens du tri demandé, pour ne jamais le faire remonter en tête.
-_UNKNOWN_PRICE_LAST = "CASE WHEN price GLOB '[0-9]*' THEN 0 ELSE 1 END ASC"
+# GLOB est spécifique à SQLite ; équivalent portable en Postgres via une regex POSIX (~).
+_STARTS_WITH_DIGIT = "price ~ '^[0-9]'" if IS_POSTGRES else "price GLOB '[0-9]*'"
+_UNKNOWN_PRICE_LAST = f"CASE WHEN {_STARTS_WITH_DIGIT} THEN 0 ELSE 1 END ASC"
 
 _SORT_CLAUSES = {
     # Le prix est stocké en texte avec le symbole "€" (ex: "19,99 €") : on le
@@ -33,23 +35,41 @@ def upsert_favorite(email: str, favorite: dict) -> None:
     Ajoute ou met à jour un favori (email + productURL forment la clé unique).
     `favorite` attend les clés : description, price, imageURL, productURL,
     source, sourceLogo, rating, reviewCount.
+    Vérifie l'existence puis UPDATE/INSERT plutôt qu'un "INSERT OR REPLACE" (syntaxe
+    SQLite non portable vers Postgres).
     """
+    product_url = favorite.get("productURL")
     with get_connection() as connection:
-        connection.execute("""
-            INSERT OR REPLACE INTO favorites
-            (email, description, price, imageURL, productURL, source, sourceLogo, rating, reviewCount)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            email,
-            favorite.get("description"),
-            favorite.get("price"),
-            favorite.get("imageURL"),
-            favorite.get("productURL"),
-            favorite.get("source"),
-            favorite.get("sourceLogo"),
-            favorite.get("rating"),
-            favorite.get("reviewCount"),
-        ))
+        existing = connection.execute(
+            "SELECT 1 FROM favorites WHERE email = ? AND productURL = ?", (email, product_url)
+        ).fetchone()
+        if existing:
+            connection.execute("""
+                UPDATE favorites
+                SET description = ?, price = ?, imageURL = ?, source = ?,
+                    sourceLogo = ?, rating = ?, reviewCount = ?
+                WHERE email = ? AND productURL = ?
+            """, (
+                favorite.get("description"), favorite.get("price"), favorite.get("imageURL"),
+                favorite.get("source"), favorite.get("sourceLogo"), favorite.get("rating"),
+                favorite.get("reviewCount"), email, product_url,
+            ))
+        else:
+            connection.execute("""
+                INSERT INTO favorites
+                (email, description, price, imageURL, productURL, source, sourceLogo, rating, reviewCount)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                email,
+                favorite.get("description"),
+                favorite.get("price"),
+                favorite.get("imageURL"),
+                product_url,
+                favorite.get("source"),
+                favorite.get("sourceLogo"),
+                favorite.get("rating"),
+                favorite.get("reviewCount"),
+            ))
         connection.commit()
 
 

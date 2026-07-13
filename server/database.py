@@ -1,35 +1,110 @@
 """
-Connexion à la base SQLite de l'application et création de son schéma.
+Connexion à la base de données de l'application et création de son schéma.
 
-Ce module ne contient aucune logique métier : uniquement l'ouverture de
-connexion et la définition des tables. Les requêtes SELECT/INSERT/UPDATE/DELETE
-vivent dans repositories/, jamais ici.
+Deux moteurs supportés : SQLite en local (par défaut) et Postgres en production
+(quand config.DATABASE_URL est défini, ex: fourni automatiquement par l'addon
+Postgres de Render). Ce module ne contient aucune logique métier : uniquement
+l'ouverture de connexion et la définition des tables. Les requêtes
+SELECT/INSERT/UPDATE/DELETE vivent dans repositories/, jamais ici.
+
+Pour que repositories/ n'ait pas à connaître le moteur utilisé, get_connection()
+retourne toujours un objet exposant .execute(query, params) avec des placeholders
+'?' (comme sqlite3), même sur Postgres : _PostgresConnection traduit '?' en '%s'
+avant d'exécuter. Cette traduction naïve suppose qu'aucune requête ne contient un
+'?' littéral hors placeholder, ce qui est le cas de toutes les requêtes de ce
+projet (pas de JSON ni de LIKE avec '?' comme caractère de données).
 """
 import logging
 import sqlite3
+from datetime import datetime, timedelta
+
+import config
 
 DATABASE_PATH = "subscriptions.db"
 
+IS_POSTGRES = bool(config.DATABASE_URL)
 
-def get_connection() -> sqlite3.Connection:
+
+class _PostgresConnection:
+    """Enveloppe une connexion psycopg2 pour exposer la même API que sqlite3.Connection
+    (.execute() direct sur la connexion, lignes accessibles par nom de colonne)."""
+
+    def __init__(self, raw_connection):
+        self._raw = raw_connection
+
+    def execute(self, query: str, params: tuple = ()):
+        cursor = self._raw.cursor()
+        cursor.execute(query.replace("?", "%s"), params)
+        return cursor
+
+    def cursor(self):
+        return self._raw.cursor()
+
+    def commit(self):
+        self._raw.commit()
+
+    def rollback(self):
+        self._raw.rollback()
+
+    def close(self):
+        self._raw.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is None:
+            self._raw.commit()
+        else:
+            self._raw.rollback()
+        self._raw.close()
+
+
+def get_connection():
     """
-    Ouvre une connexion à la base SQLite de l'application.
-    Les lignes se comportent comme des dictionnaires (accès par nom de colonne
-    via row["colonne"], en plus de l'accès positionnel classique).
+    Ouvre une connexion à la base de l'application (Postgres si config.DATABASE_URL
+    est défini, SQLite sinon). Les lignes se comportent comme des dictionnaires
+    (accès par nom de colonne via row["colonne"]) dans les deux cas.
     """
+    if IS_POSTGRES:
+        import psycopg2
+        import psycopg2.extras
+        raw_connection = psycopg2.connect(config.DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        return _PostgresConnection(raw_connection)
+
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row
     return connection
 
 
+def _ensure_threshold_percent_column(connection) -> None:
+    """
+    Ajoute la colonne subscriptions.threshold_percent si elle n'existe pas déjà
+    (une base créée avant cette fonctionnalité peut en être dépourvue).
+    """
+    if IS_POSTGRES:
+        cursor = connection.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'subscriptions'"
+        )
+        existing_columns = {row["column_name"] for row in cursor.fetchall()}
+    else:
+        cursor = connection.execute("PRAGMA table_info(subscriptions)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+
+    if "threshold_percent" not in existing_columns:
+        connection.execute("ALTER TABLE subscriptions ADD COLUMN threshold_percent REAL")
+
+
 def initialize_database() -> None:
     """Crée toutes les tables de l'application si elles n'existent pas déjà."""
+    # SERIAL (Postgres) et INTEGER PRIMARY KEY AUTOINCREMENT (SQLite) sont les deux
+    # syntaxes d'auto-incrément de clé primaire ; le reste du DDL est portable tel quel.
+    id_pk = "id SERIAL PRIMARY KEY" if IS_POSTGRES else "id INTEGER PRIMARY KEY AUTOINCREMENT"
     try:
         with get_connection() as connection:
-            cursor = connection.cursor()
-            cursor.execute("""
+            connection.execute(f"""
                 CREATE TABLE IF NOT EXISTS subscriptions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {id_pk},
                     product_url TEXT,
                     initial_price REAL,
                     email TEXT
@@ -37,15 +112,10 @@ def initialize_database() -> None:
             """)
             # threshold_percent : baisse minimale (en %) pour déclencher une alerte.
             # NULL = comportement historique (toute baisse déclenche une alerte).
-            # Ajout via ALTER (la table peut déjà exister sans cette colonne sur une
-            # base créée avant cette fonctionnalité).
-            cursor.execute("PRAGMA table_info(subscriptions)")
-            existing_columns = {row[1] for row in cursor.fetchall()}
-            if "threshold_percent" not in existing_columns:
-                cursor.execute("ALTER TABLE subscriptions ADD COLUMN threshold_percent REAL")
-            cursor.execute("""
+            _ensure_threshold_percent_column(connection)
+            connection.execute(f"""
                 CREATE TABLE IF NOT EXISTS favorites (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {id_pk},
                     email TEXT,
                     description TEXT,
                     price TEXT,
@@ -58,30 +128,30 @@ def initialize_database() -> None:
                     UNIQUE(email, productURL)
                 )
             """)
-            cursor.execute("""
+            connection.execute("""
                 CREATE TABLE IF NOT EXISTS user_profile (
                     email TEXT PRIMARY KEY,
                     display_name TEXT,
                     notifications_enabled INTEGER DEFAULT 1
                 )
             """)
-            cursor.execute("""
+            connection.execute(f"""
                 CREATE TABLE IF NOT EXISTS price_history (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {id_pk},
                     productURL TEXT,
                     price REAL,
                     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            cursor.execute("""
+            connection.execute(f"""
                 CREATE TABLE IF NOT EXISTS favorite_lists (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {id_pk},
                     email TEXT,
                     name TEXT,
                     UNIQUE(email, name)
                 )
             """)
-            cursor.execute("""
+            connection.execute("""
                 CREATE TABLE IF NOT EXISTS favorite_list_items (
                     list_id INTEGER,
                     productURL TEXT,
@@ -89,9 +159,9 @@ def initialize_database() -> None:
                     PRIMARY KEY(list_id, productURL)
                 )
             """)
-            cursor.execute("""
+            connection.execute(f"""
                 CREATE TABLE IF NOT EXISTS in_app_notifications (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {id_pk},
                     email TEXT,
                     message TEXT,
                     productURL TEXT,
@@ -99,7 +169,7 @@ def initialize_database() -> None:
                     is_read INTEGER DEFAULT 0
                 )
             """)
-            cursor.execute("""
+            connection.execute("""
                 CREATE TABLE IF NOT EXISTS articles (
                     productURL TEXT PRIMARY KEY,
                     description TEXT,
@@ -112,15 +182,26 @@ def initialize_database() -> None:
                     last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            cursor.execute("""
+            connection.execute(f"""
                 CREATE TABLE IF NOT EXISTS search_log (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {id_pk},
                     query TEXT,
                     email TEXT,
                     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             connection.commit()
-        logging.info("Base de données initialisée avec succès.")
+        logging.info("Base de données initialisée avec succès (%s).", "Postgres" if IS_POSTGRES else "SQLite")
     except Exception as e:
         logging.error("Erreur lors de l'initialisation de la BDD: %s", e)
+
+
+def recent_cutoff(days: int) -> datetime:
+    """
+    Calcule l'horodatage de coupure pour "les N derniers jours", en Python plutôt
+    qu'en SQL, pour rester portable entre SQLite et Postgres (leurs fonctions de
+    date respectives ne sont pas compatibles). Naïf (sans fuseau horaire) en UTC,
+    pour correspondre exactement au format stocké par CURRENT_TIMESTAMP dans les
+    deux moteurs (colonnes TIMESTAMP sans fuseau horaire).
+    """
+    return datetime.utcnow() - timedelta(days=days)

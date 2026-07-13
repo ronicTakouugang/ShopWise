@@ -1,5 +1,5 @@
 """Accès à la table `in_app_notifications`."""
-from database import get_connection
+from database import get_connection, recent_cutoff
 
 
 def get_notifications_by_email(email: str) -> list:
@@ -33,10 +33,14 @@ def mark_all_notifications_read(email: str) -> None:
 
 
 def count_recent_notifications(days: int = 7) -> int:
-    """Nombre de notifications créées dans les N derniers jours, tous utilisateurs confondus."""
+    """
+    Nombre de notifications créées dans les N derniers jours, tous utilisateurs confondus.
+    Le seuil est calculé côté Python (recent_cutoff) plutôt qu'avec datetime('now', ...),
+    spécifique à SQLite et non portable vers Postgres.
+    """
     with get_connection() as connection:
         cursor = connection.execute(
-            "SELECT COUNT(*) as count FROM in_app_notifications WHERE date >= datetime('now', ?)",
-            (f"-{days} days",)
+            "SELECT COUNT(*) as count FROM in_app_notifications WHERE date >= ?",
+            (recent_cutoff(days),)
         )
         return cursor.fetchone()["count"]

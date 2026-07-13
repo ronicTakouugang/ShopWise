@@ -24,10 +24,19 @@ FIREBASE_CONFIG = {
 
 # --- Flask ---
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "default-secret-key")
+# CORS_ORIGIN (ex: l'URL du static site Render en production) s'ajoute à localhost:4200,
+# utilisé en dev, plutôt que de le remplacer.
 CORS_ALLOWED_ORIGINS = ["http://localhost:4200"]
+if os.getenv("CORS_ORIGIN"):
+    CORS_ALLOWED_ORIGINS.append(os.getenv("CORS_ORIGIN"))
 # En local (http://localhost) le cookie de session doit rester non-Secure, sinon le
 # navigateur le refuse. Passer SESSION_COOKIE_SECURE=true en production (HTTPS).
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
+
+# --- Base de données ---
+# Si DATABASE_URL est défini (ex: fourni automatiquement par Render pour son addon
+# Postgres), la base Postgres est utilisée à la place de SQLite. Voir database.py.
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # --- SMTP (emails d'alerte de baisse de prix) ---
 SMTP_SERVER = os.getenv("SMTP_SERVER")

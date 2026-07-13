@@ -20,12 +20,22 @@ def create_default_profile(email: str, display_name: str) -> None:
 
 
 def upsert_profile(email: str, display_name: str, notifications_enabled: bool) -> None:
-    """Crée ou met à jour le profil utilisateur."""
+    """
+    Crée ou met à jour le profil utilisateur. Vérifie l'existence puis UPDATE/INSERT
+    plutôt qu'un "INSERT OR REPLACE" (syntaxe SQLite non portable vers Postgres).
+    """
     with get_connection() as connection:
-        connection.execute("""
-            INSERT OR REPLACE INTO user_profile (email, display_name, notifications_enabled)
-            VALUES (?, ?, ?)
-        """, (email, display_name, notifications_enabled))
+        existing = connection.execute("SELECT 1 FROM user_profile WHERE email = ?", (email,)).fetchone()
+        if existing:
+            connection.execute(
+                "UPDATE user_profile SET display_name = ?, notifications_enabled = ? WHERE email = ?",
+                (display_name, notifications_enabled, email)
+            )
+        else:
+            connection.execute(
+                "INSERT INTO user_profile (email, display_name, notifications_enabled) VALUES (?, ?, ?)",
+                (email, display_name, notifications_enabled)
+            )
         connection.commit()
 
 

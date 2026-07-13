@@ -7,6 +7,18 @@ from unittest.mock import patch, MagicMock
 from services import price_alert_service
 
 
+def _subscription_row(sub_id, product_url, initial_price, email, threshold_percent):
+    """
+    Construit une ligne d'abonnement telle que retournée par get_all_subscriptions() :
+    un dict, pour matcher l'accès par nom de colonne (compatible sqlite3.Row et
+    RealDictRow/Postgres), pas un tuple positionnel.
+    """
+    return {
+        "id": sub_id, "product_url": product_url, "initial_price": initial_price,
+        "email": email, "threshold_percent": threshold_percent,
+    }
+
+
 class TestParseThresholdPercent:
     def test_none_returns_none(self):
         assert price_alert_service.parse_threshold_percent(None) is None
@@ -97,7 +109,7 @@ class TestRunPriceCheck:
         self, mock_get_price, mock_sub_repo
     ):
         mock_sub_repo.get_all_subscriptions.return_value = [
-            (1, "https://x", 50.0, "user@example.com", None)
+            _subscription_row(1, "https://x", 50.0, "user@example.com", None)
         ]
         mock_get_price.return_value = float('inf')
 
@@ -119,7 +131,7 @@ class TestRunPriceCheck:
     ):
         # Seuil de 50% requis, mais la baisse réelle n'est que de 10%.
         mock_sub_repo.get_all_subscriptions.return_value = [
-            (1, "https://x", 100.0, "user@example.com", 50.0)
+            _subscription_row(1, "https://x", 100.0, "user@example.com", 50.0)
         ]
         mock_get_price.return_value = 90.0
 
@@ -141,7 +153,7 @@ class TestRunPriceCheck:
         mock_profile_repo, mock_notif_repo
     ):
         mock_sub_repo.get_all_subscriptions.return_value = [
-            (1, "https://x", 100.0, "user@example.com", 10.0)
+            _subscription_row(1, "https://x", 100.0, "user@example.com", 10.0)
         ]
         mock_get_price.return_value = 80.0  # baisse de 20%, seuil de 10% atteint
         mock_profile_repo.get_email_notifications_enabled.return_value = True
@@ -164,7 +176,7 @@ class TestRunPriceCheck:
         mock_profile_repo, mock_notif_repo
     ):
         mock_sub_repo.get_all_subscriptions.return_value = [
-            (1, "https://x", 100.0, "user@example.com", None)
+            _subscription_row(1, "https://x", 100.0, "user@example.com", None)
         ]
         mock_get_price.return_value = 90.0
         mock_profile_repo.get_email_notifications_enabled.return_value = False
@@ -186,7 +198,7 @@ class TestRunPriceCheck:
         mock_profile_repo, mock_notif_repo
     ):
         mock_sub_repo.get_all_subscriptions.return_value = [
-            (1, "https://x", 100.0, "user@example.com", None)
+            _subscription_row(1, "https://x", 100.0, "user@example.com", None)
         ]
         mock_get_price.return_value = 110.0
 

@@ -9,13 +9,28 @@ MAX_PLAUSIBLE_PRICE_EUR = 500_000
 
 def upsert_article(product_url: str, description: str, image_url: str, source: str,
                     source_logo: str, rating: str, review_count: str, last_price: float) -> None:
-    """Crée ou met à jour un article du catalogue (productURL est la clé unique)."""
+    """
+    Crée ou met à jour un article du catalogue (productURL est la clé unique).
+    Vérifie l'existence puis UPDATE/INSERT plutôt qu'un "INSERT OR REPLACE" (syntaxe
+    SQLite non portable vers Postgres).
+    """
     with get_connection() as connection:
-        connection.execute("""
-            INSERT OR REPLACE INTO articles
-            (productURL, description, imageURL, source, sourceLogo, rating, reviewCount, last_price, last_seen_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        """, (product_url, description, image_url, source, source_logo, rating, review_count, last_price))
+        existing = connection.execute(
+            "SELECT 1 FROM articles WHERE productURL = ?", (product_url,)
+        ).fetchone()
+        if existing:
+            connection.execute("""
+                UPDATE articles
+                SET description = ?, imageURL = ?, source = ?, sourceLogo = ?,
+                    rating = ?, reviewCount = ?, last_price = ?, last_seen_at = CURRENT_TIMESTAMP
+                WHERE productURL = ?
+            """, (description, image_url, source, source_logo, rating, review_count, last_price, product_url))
+        else:
+            connection.execute("""
+                INSERT INTO articles
+                (productURL, description, imageURL, source, sourceLogo, rating, reviewCount, last_price, last_seen_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (product_url, description, image_url, source, source_logo, rating, review_count, last_price))
         connection.commit()
 
 
