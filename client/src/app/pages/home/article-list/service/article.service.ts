@@ -15,10 +15,19 @@ export class ArticleService {
   public errorSubject:Subject<void> = new Subject<void>();
   private apiUrl = environment.apiUrl;
 
+  // true dès qu'une recherche a été lancée (même sans résultat/en erreur) : sert à
+  // distinguer "aucun résultat trouvé" d'un "aucune recherche effectuée pour l'instant"
+  // (page d'accueil / retour à l'accueil). Ne doit être modifié qu'ici et dans
+  // clearArticles(), jamais déduit d'une émission de articleSubject/errorSubject :
+  // ArticleListComponent rebroadcaste aussi les articles actuels (vides) à chaque
+  // montage via next(), ce qui ne constitue pas une recherche.
+  hasSearched: boolean = false;
+
   constructor(private http:HttpClient, private historyService: HistoryService) { }
 
   clearArticles() {
     this.articles = [];
+    this.hasSearched = false;
     this.next();
   }
 
@@ -28,6 +37,7 @@ export class ArticleService {
   }
 
   findProduct(product:string){
+    this.hasSearched = true;
     const params = new HttpParams().set('query', product);
     console.log("find2",product);
     return this.http.get<Article[]>(`${this.apiUrl}/search`, { params }).pipe(

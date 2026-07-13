@@ -39,12 +39,12 @@
   </ng-container>
 
   <ng-container *ngIf="!isLoading && !hasError">
-    @if (paginatedArticles.length === 0) {
+    @if (articlesService.hasSearched && paginatedArticles.length === 0) {
       <div class="search-empty-state">
         <i class="pi pi-search"></i>
         <p>Aucun résultat trouvé pour votre recherche.</p>
       </div>
-    } @else {
+    } @else if (articlesService.hasSearched) {
       @for (article of paginatedArticles; track article.productURL){
         <app-article [article]="article"/>
       }

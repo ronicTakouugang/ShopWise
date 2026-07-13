@@ -3,7 +3,7 @@
     <app-history></app-history>
   </div>
   <div class="main-content">
-    <section class="hero-section" *ngIf="!hasSearched">
+    <section class="hero-section" *ngIf="!articleService.hasSearched">
       <div class="hero-content">
         <h1 class="main-title">Comparez. Économisez.</h1>
         <p class="subtitle">Le bon prix, partout, en un clic.</p>
@@ -28,7 +28,7 @@
     </section>
 
     <div class="wrapper list--wrapper">
-      <div class="results-header" *ngIf="hasSearched">
+      <div class="results-header" *ngIf="articleService.hasSearched">
         <div class="search-nav">
           <button class="back-to-home" (click)="clearSearch()">
             <i class="pi pi-arrow-left"></i>

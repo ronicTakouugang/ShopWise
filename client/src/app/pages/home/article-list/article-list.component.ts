@@ -34,7 +34,7 @@ export class ArticleListComponent implements OnInit{
   isLoading: boolean = false;
   hasError: boolean = false;
 
-  constructor(private articlesService:ArticleService, private loaderService: LoaderService) {
+  constructor(public articlesService:ArticleService, private loaderService: LoaderService) {
   }
 
   ngOnInit(): void {
