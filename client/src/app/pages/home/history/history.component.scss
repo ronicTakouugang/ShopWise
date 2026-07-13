@@ -1,3 +1,16 @@
+:host {
+  // Angular ne rend pas les elements custom en display:block par defaut : sans
+  // ca, <app-history> reste inline et se limite a la largeur de son contenu,
+  // ce qui empeche width:100% de se propager depuis .wrapper--history sur
+  // mobile (le panneau ne prend alors qu'une partie de la largeur ecran).
+  display: block;
+  width: 100%;
+}
+
+.history {
+  width: 100%;
+}
+
 :host ::ng-deep{
   .p-menu{
     height: 100%;

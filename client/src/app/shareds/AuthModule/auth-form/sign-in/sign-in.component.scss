@@ -4,10 +4,14 @@
   overflow: hidden;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   width: 380px;
+  // La modale d'inscription (.wide, 500px) débordait de son conteneur sur
+  // mobile sans meme causer de scroll (juste coupee a gauche, inaccessible).
+  max-width: calc(100vw - 32px);
   font-family: 'Inter', -apple-system, sans-serif;
 
   &.wide {
     width: 500px;
+    max-width: calc(100vw - 32px);
   }
 }
 
@@ -139,7 +143,12 @@
 
 .auth-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  // auto-fit/minmax plutot qu'un media query : la grille passe naturellement a
+  // une colonne des que la carte (elle-meme limitee a calc(100vw - 32px) sur
+  // mobile) n'a plus la place pour deux colonnes de 140px, sans dependre de
+  // l'ordre de cascade entre ce fichier et sign-on.component.scss (qui le
+  // duplique via @use).
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
 }
 

@@ -354,17 +354,63 @@
 @media (max-width: 768px) {
   :host ::ng-deep .p-toolbar {
     padding: 0.6rem 1rem;
+    // Pas de flex-wrap: nowrap ici : avec ou sans compte connecte, le nombre
+    // d'icones affichees varie (jusqu'a 5 groupes distincts une fois connecte),
+    // et les forcer sur une seule ligne les ferait deborder hors de l'ecran au
+    // lieu de passer proprement sur 2 lignes quand il n'y a vraiment pas la place.
+    row-gap: 8px;
   }
 
   .Title {
     font-size: 1.1rem;
   }
 
-  .nav-links .nav-link span {
-    display: none;
+  .nav-links {
+    gap: 0.15rem;
+
+    .nav-link {
+      padding: 0.5rem 0.6rem;
+      span {
+        display: none;
+      }
+    }
   }
 
-  .user-actions .text-info {
+  .user-actions {
+    gap: 4px;
+    margin-right: 0;
+
+    .text-info {
+      display: none;
+    }
+  }
+
+  .user-info {
+    padding: 5px 8px;
+
+    .chevron-icon {
+      display: none;
+    }
+  }
+
+  // Boutons "Se connecter"/"S'inscrire" en icone seule : avec leur texte, ils
+  // forcent le toolbar a passer sur deux lignes des les tres petits ecrans.
+  .auth-actions {
+    display: flex;
+    gap: 6px;
+
+    ::ng-deep .p-button-label {
+      display: none;
+    }
+
+    ::ng-deep .p-button {
+      padding: 0.5rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-container svg {
     display: none;
   }
 }

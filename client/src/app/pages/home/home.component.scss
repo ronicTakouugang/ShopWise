@@ -260,4 +260,55 @@ app-article-list {
     border-bottom: 1px solid #e5e7eb;
     box-shadow: 0 4px 10px rgba(0,0,0,0.02);
   }
+
+  .main-content {
+    padding: 12px;
+  }
+
+  .hero-section {
+    flex-direction: column;
+    text-align: center;
+    padding: 1rem;
+    gap: 24px;
+    min-height: auto;
+    margin: 12px auto 24px;
+  }
+
+  .hero-content {
+    max-width: 100%;
+    align-items: center;
+  }
+
+  .main-title {
+    // clamp plutot qu'une taille fixe : reste lisible sur un ecran de 320px
+    // (le plus etroit courant) sans jamais deborder, meme avec la graisse 800.
+    font-size: clamp(1.85rem, 9vw, 2.25rem);
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+
+  .search-wrapper {
+    max-width: 100%;
+  }
+
+  .popular-tags {
+    justify-content: center;
+  }
+
+  // Le robot decoratif (avec son halo en position absolue) n'a pas la place de
+  // se redimensionner proprement sur mobile et finit par recouvrir la barre de
+  // recherche (ses evenements de clic interceptent alors ceux de la page).
+  .hero-image-container {
+    display: none;
+  }
+
+  .results-header .search-nav {
+    flex-wrap: wrap;
+
+    .mini-search {
+      max-width: 100%;
+    }
+  }
 }

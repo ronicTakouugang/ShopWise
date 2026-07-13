@@ -117,7 +117,9 @@
 
   .charts-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    // 320px minimum ne tenait pas sur un ecran de 320px de large une fois le
+    // padding du conteneur soustrait (deborde horizontalement).
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1.5rem;
 
     .chart-card {
