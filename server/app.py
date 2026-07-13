@@ -1,49 +1,48 @@
+"""
+Point d'entrée de l'application Flask : configuration, routes HTTP et
+planification du job périodique de vérification des prix.
+
+Ce fichier contient encore, pour l'instant (Phase 1 du refactoring), la logique
+métier (recherche, alertes de prix) directement dans les routes. Cette logique
+sera extraite vers services/ en Phase 2. En revanche, plus aucun SQL direct
+n'apparaît ici : tout accès à la base passe par repositories/.
+"""
 import logging
-import sqlite3
-import math
+import os
 import smtplib
-import re
-import time
 import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from apscheduler.schedulers.background import BackgroundScheduler
-from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
-import pyrebase
 
-# --- Fonctions de scraping
+import config
+from database import initialize_database
+from repositories import (
+    articles_repository,
+    favorites_repository,
+    lists_repository,
+    notifications_repository,
+    price_history_repository,
+    profile_repository,
+    search_log_repository,
+    subscriptions_repository,
+)
 from scrapers.amazon_scraper import scrape_amazon
-from scrapers.glotehlo_scraper import scrape_glotelho
-from scrapers.walmart_scraper import scrape_walmart
-from scrapers.leclerc_scraper import scrape_leclerc
 from scrapers.auchan_scraper import scrape_auchan
+from scrapers.glotehlo_scraper import scrape_glotelho
+from scrapers.leclerc_scraper import scrape_leclerc
+from scrapers.walmart_scraper import scrape_walmart
+from utils import extract_price, format_price, normalize_text
 
-import os
-from dotenv import load_dotenv
-from utils import normalize_text, extract_price, format_price
+firebase_auth = config.create_firebase_auth()
 
-load_dotenv()
-
-# --- Configuration de Firebase pour l'authentification ---
-firebaseConfig = {
-    "apiKey": os.getenv("FIREBASE_API_KEY"),
-    "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
-    "projectId": os.getenv("FIREBASE_PROJECT_ID"),
-    "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
-    "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
-    "appId": os.getenv("FIREBASE_APP_ID"),
-    "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID"),
-    "databaseURL": os.getenv("FIREBASE_DATABASE_URL")
-}
-
-firebase = pyrebase.initialize_app(firebaseConfig)
-firebase_auth = firebase.auth()
-
-# --- Configuration de l'application Flask ---
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "default-secret-key")
+app.secret_key = config.FLASK_SECRET_KEY
 
 # Configuration des cookies de session
 app.config.update(
@@ -52,120 +51,10 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Lax',
 )
 
-CORS(app, supports_credentials=True, origins=["http://localhost:4200"])
+CORS(app, supports_credentials=True, origins=config.CORS_ALLOWED_ORIGINS)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-
-#########################
-# Initialisation de la BDD pour les abonnements
-#########################
-def init_db() -> None:
-    """Initialise la base de données SQLite pour les abonnements, favoris et profil."""
-    try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS subscriptions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    product_url TEXT,
-                    initial_price REAL,
-                    email TEXT
-                )
-            """)
-            # threshold_percent : baisse minimale (en %) pour déclencher une alerte.
-            # NULL = comportement historique (toute baisse déclenche une alerte).
-            # Ajout via ALTER (la table peut déjà exister sans cette colonne sur une
-            # base créée avant cette fonctionnalité).
-            cursor.execute("PRAGMA table_info(subscriptions)")
-            existing_columns = {row[1] for row in cursor.fetchall()}
-            if "threshold_percent" not in existing_columns:
-                cursor.execute("ALTER TABLE subscriptions ADD COLUMN threshold_percent REAL")
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS favorites (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    email TEXT,
-                    description TEXT,
-                    price TEXT,
-                    imageURL TEXT,
-                    productURL TEXT,
-                    source TEXT,
-                    sourceLogo TEXT,
-                    rating TEXT,
-                    reviewCount TEXT,
-                    UNIQUE(email, productURL)
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS user_profile (
-                    email TEXT PRIMARY KEY,
-                    display_name TEXT,
-                    notifications_enabled INTEGER DEFAULT 1
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS price_history (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    productURL TEXT,
-                    price REAL,
-                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS favorite_lists (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    email TEXT,
-                    name TEXT,
-                    UNIQUE(email, name)
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS favorite_list_items (
-                    list_id INTEGER,
-                    productURL TEXT,
-                    FOREIGN KEY(list_id) REFERENCES favorite_lists(id) ON DELETE CASCADE,
-                    PRIMARY KEY(list_id, productURL)
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS in_app_notifications (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    email TEXT,
-                    message TEXT,
-                    productURL TEXT,
-                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    is_read INTEGER DEFAULT 0
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS articles (
-                    productURL TEXT PRIMARY KEY,
-                    description TEXT,
-                    imageURL TEXT,
-                    source TEXT,
-                    sourceLogo TEXT,
-                    rating TEXT,
-                    reviewCount TEXT,
-                    last_price REAL,
-                    last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS search_log (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    query TEXT,
-                    email TEXT,
-                    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            conn.commit()
-        logging.info("Base de données initialisée avec succès.")
-    except Exception as e:
-        logging.error("Erreur lors de l'initialisation de la BDD: %s", e)
-
-
-init_db()
-
-
+initialize_database()
 
 
 def compute_deal_attributes(record: dict, query: str = "") -> dict:
@@ -176,13 +65,13 @@ def compute_deal_attributes(record: dict, query: str = "") -> dict:
         record["numeric_price"] = 999999999.0
     else:
         record["numeric_price"] = num_price
-    
+
     # Calcul de la pertinence
     relevance_score = 0
     if query:
         query_words = normalize_text(query).lower().split()
         description = normalize_text(record.get("description", "")).lower()
-        
+
         # 1. Correspondance textuelle (Score de base)
         matches = 0
         for word in query_words:
@@ -191,31 +80,31 @@ def compute_deal_attributes(record: dict, query: str = "") -> dict:
                 # Bonus si le mot est au début de la description
                 if description.startswith(word):
                     relevance_score += 1.0
-        
+
         # Score basé sur le ratio de mots trouvés
         if query_words:
             relevance_score += (matches / len(query_words)) * 5.0
-            
+
         # 2. Qualité des données (Bonus)
         # Bonus si une image est présente
         if record.get("imageURL") and record.get("imageURL") != "N/A":
             relevance_score += 2.0
-            
+
         # Bonus si le prix est valide (pas infini)
         if num_price != float('inf'):
             relevance_score += 1.5
-            
+
         # 3. Pondération par la source (Optionnel, ex: Amazon souvent plus fiable)
         if record.get("source") == "Amazon":
             relevance_score += 0.5
-            
+
         # 4. Popularité (Bonus)
         popularity = record.get("popularity", 0)
         if popularity > 1000:
             relevance_score += 1.0
         elif popularity > 100:
             relevance_score += 0.5
-            
+
     record["relevance_score"] = round(relevance_score, 2)
     return record
 
@@ -223,12 +112,6 @@ def compute_deal_attributes(record: dict, query: str = "") -> dict:
 #########################
 # Persistance du catalogue d'articles et de l'historique de prix
 #########################
-# Plafond de sécurité pour un prix persistable : aucun produit de ce catalogue ne
-# vaut légitimement plus que ça. Filet de sécurité contre un futur bug de parsing de
-# prix dans un scraper (cf. bug historique de conversion FCFA -> prix ~656x trop élevé).
-MAX_PLAUSIBLE_PRICE_EUR = 500_000
-
-
 def persist_articles(records: list) -> None:
     """
     Met à jour le catalogue d'articles et enregistre un point d'historique de prix
@@ -238,46 +121,32 @@ def persist_articles(records: list) -> None:
     identiques à chaque recherche.
     """
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            for record in records:
-                product_url = str(record.get("productURL", "")).strip()
-                numeric_price = record.get("numeric_price", float('inf'))
-                if not product_url or numeric_price == float('inf'):
-                    continue
-                if numeric_price <= 0 or numeric_price > MAX_PLAUSIBLE_PRICE_EUR:
-                    logging.warning(
-                        "Prix invraisemblable ignoré pour '%s' (%s): %s",
-                        record.get("description"), product_url, numeric_price
-                    )
-                    continue
-
-                cursor.execute("""
-                    INSERT OR REPLACE INTO articles
-                    (productURL, description, imageURL, source, sourceLogo, rating, reviewCount, last_price, last_seen_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """, (
-                    product_url,
-                    record.get("description"),
-                    record.get("imageURL"),
-                    record.get("source"),
-                    record.get("sourceLogo"),
-                    record.get("rating"),
-                    record.get("reviewCount"),
-                    numeric_price,
-                ))
-
-                cursor.execute(
-                    "SELECT price FROM price_history WHERE productURL = ? ORDER BY date DESC LIMIT 1",
-                    (product_url,)
+        for record in records:
+            product_url = str(record.get("productURL", "")).strip()
+            numeric_price = record.get("numeric_price", float('inf'))
+            if not product_url or numeric_price == float('inf'):
+                continue
+            if numeric_price <= 0 or numeric_price > articles_repository.MAX_PLAUSIBLE_PRICE_EUR:
+                logging.warning(
+                    "Prix invraisemblable ignoré pour '%s' (%s): %s",
+                    record.get("description"), product_url, numeric_price
                 )
-                last = cursor.fetchone()
-                if last is None or last[0] != numeric_price:
-                    cursor.execute(
-                        "INSERT INTO price_history (productURL, price) VALUES (?, ?)",
-                        (product_url, numeric_price)
-                    )
-            conn.commit()
+                continue
+
+            articles_repository.upsert_article(
+                product_url,
+                record.get("description"),
+                record.get("imageURL"),
+                record.get("source"),
+                record.get("sourceLogo"),
+                record.get("rating"),
+                record.get("reviewCount"),
+                numeric_price,
+            )
+
+            last_price = price_history_repository.get_last_price_point(product_url)
+            if last_price is None or last_price != numeric_price:
+                price_history_repository.insert_price_point(product_url, numeric_price)
     except Exception as e:
         logging.error("Erreur lors de la persistance des articles: %s", e)
 
@@ -349,13 +218,13 @@ def do_search(query: str) -> list:
             # On s'assure juste que les clés minimales existent
             if not record.get("description"):
                 continue
-            
+
             product_url = record.get("productURL", "").strip()
             if product_url:
                 if product_url in seen_urls:
                     continue
                 seen_urls.add(product_url)
-            
+
             record = compute_deal_attributes(record, query)
             filtered_results.append(record)
         except Exception as e:
@@ -392,12 +261,7 @@ _search_cache_lock = threading.Lock()
 def log_search(query: str) -> None:
     """Enregistre une recherche pour les statistiques (recherches les plus fréquentes)."""
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            conn.execute(
-                "INSERT INTO search_log (query, email) VALUES (?, ?)",
-                (normalize_text(query), session.get("email"))
-            )
-            conn.commit()
+        search_log_repository.insert_search_log(normalize_text(query), session.get("email"))
     except Exception as e:
         logging.error("Erreur lors de l'enregistrement de la recherche: %s", e)
 
@@ -431,9 +295,9 @@ def register():
     Crée un nouvel utilisateur via Firebase.
     Retourne un message de succès ou une erreur.
     """
-    data = request.get_json()
-    email = data.get("email", "").strip()
-    password = data.get("password")
+    registration_payload = request.get_json()
+    email = registration_payload.get("email", "").strip()
+    password = registration_payload.get("password")
     if not email or not password:
         return jsonify({"error": "Email et mot de passe requis."}), 400
     try:
@@ -461,9 +325,9 @@ def login():
     Connecte un utilisateur en vérifiant ses identifiants via Firebase.
     Stocke l'email et le token dans la session.
     """
-    data = request.get_json()
-    email = data.get("email", "").strip()
-    password = data.get("password")
+    login_payload = request.get_json()
+    email = login_payload.get("email", "").strip()
+    password = login_payload.get("password")
     if not email or not password:
         return jsonify({"error": "Email et mot de passe requis."}), 400
     try:
@@ -498,32 +362,13 @@ def get_favorites():
     """Récupère les favoris de l'utilisateur avec support du tri."""
     if 'email' not in session:
         return jsonify({"error": "Non authentifié"}), 401
-    
+
     email = session['email']
-    sort_by = request.args.get('sort', 'date_added') # default sort
-    
-    query = "SELECT * FROM favorites WHERE email = ?"
-    
-    # Le tri par date d'ajout n'est pas directement supporté car on n'a pas de colonne date_added
-    # On pourrait l'ajouter, mais pour l'instant on trie par ID (qui suit l'ordre d'ajout)
-    if sort_by == 'price_asc':
-        # Note: price est stocké sous forme de chaîne avec le symbole €, 
-        # il faudrait idéalement une colonne numérique pour un tri robuste.
-        # Pour l'instant on fait un tri simple.
-        query += " ORDER BY CAST(REPLACE(REPLACE(price, '€', ''), ',', '.') AS REAL) ASC"
-    elif sort_by == 'price_desc':
-        query += " ORDER BY CAST(REPLACE(REPLACE(price, '€', ''), ',', '.') AS REAL) DESC"
-    else:
-        query += " ORDER BY id DESC" # Date d'ajout (approximé par l'ID)
+    sort_by = request.args.get('sort', 'date_added')
 
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute(query, (email,))
-            rows = cursor.fetchall()
-            favorites = [dict(row) for row in rows]
-            return jsonify(favorites)
+        favorites = favorites_repository.get_favorites_by_email(email, sort_by)
+        return jsonify(favorites)
     except Exception as e:
         logging.error("Erreur lors de la récupération des favoris: %s", e)
         return jsonify({"error": str(e)}), 500
@@ -532,22 +377,12 @@ def get_favorites():
 @app.route('/price_history', methods=['GET'])
 def get_price_history():
     """Récupère l'historique des prix pour un produit."""
-    productURL = request.args.get('productURL')
-    if not productURL:
+    product_url = request.args.get('productURL')
+    if not product_url:
         return jsonify({"error": "productURL requis"}), 400
-    
+
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT price, date 
-                FROM price_history 
-                WHERE productURL = ? 
-                ORDER BY date ASC
-            """, (productURL,))
-            rows = cursor.fetchall()
-            return jsonify([dict(row) for row in rows])
+        return jsonify(price_history_repository.get_price_history(product_url))
     except Exception as e:
         logging.error("Erreur lors de la récupération de l'historique: %s", e)
         return jsonify({"error": str(e)}), 500
@@ -562,50 +397,12 @@ def get_analytics_summary():
     différentes ne sont pas mis en correspondance par SKU/EAN), juste des stats par source.
     """
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT query, COUNT(*) as count
-                FROM search_log
-                GROUP BY query
-                ORDER BY count DESC
-                LIMIT 10
-            """)
-            top_searches = [dict(row) for row in cursor.fetchall()]
-
-            cursor.execute("""
-                SELECT source,
-                       COUNT(*) as product_count,
-                       AVG(last_price) as avg_price,
-                       MIN(last_price) as min_price,
-                       MAX(last_price) as max_price
-                FROM articles
-                WHERE last_price IS NOT NULL AND last_price < 999999999
-                GROUP BY source
-            """)
-            source_stats = [dict(row) for row in cursor.fetchall()]
-
-            cursor.execute("""
-                SELECT COUNT(*) as count
-                FROM in_app_notifications
-                WHERE date >= datetime('now', '-7 days')
-            """)
-            recent_price_drops = cursor.fetchone()["count"]
-
-            cursor.execute("SELECT COUNT(*) as count FROM subscriptions")
-            tracked_subscriptions = cursor.fetchone()["count"]
-
-            cursor.execute("SELECT COUNT(DISTINCT productURL) as count FROM favorites")
-            tracked_favorites = cursor.fetchone()["count"]
-
         return jsonify({
-            "top_searches": top_searches,
-            "source_stats": source_stats,
-            "recent_price_drops": recent_price_drops,
-            "tracked_subscriptions": tracked_subscriptions,
-            "tracked_favorites": tracked_favorites,
+            "top_searches": search_log_repository.get_top_searches(limit=10),
+            "source_stats": articles_repository.get_price_stats_by_source(),
+            "recent_price_drops": notifications_repository.count_recent_notifications(days=7),
+            "tracked_subscriptions": subscriptions_repository.count_subscriptions(),
+            "tracked_favorites": favorites_repository.count_distinct_favorited_products(),
         })
     except Exception as e:
         logging.error("Erreur lors du calcul des statistiques analytics: %s", e)
@@ -614,73 +411,62 @@ def get_analytics_summary():
 
 @app.route('/lists', methods=['GET'])
 def get_lists():
-    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
-    email = session['email']
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM favorite_lists WHERE email = ?", (email,))
-            return jsonify([dict(row) for row in cursor.fetchall()])
-    except Exception as e: return jsonify({"error": str(e)}), 500
+        return jsonify(lists_repository.get_lists_by_email(session['email']))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/lists', methods=['POST'])
 def create_list():
-    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
     email = session['email']
     name = request.json.get('name')
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO favorite_lists (email, name) VALUES (?, ?)", (email, name))
-            conn.commit()
-            return jsonify({"id": cursor.lastrowid, "name": name})
-    except Exception as e: return jsonify({"error": str(e)}), 500
+        list_id = lists_repository.create_list(email, name)
+        return jsonify({"id": list_id, "name": name})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/lists/<int:list_id>/items', methods=['POST'])
 def add_to_list(list_id):
-    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
     email = session['email']
-    productURL = request.json.get('productURL')
+    product_url = request.json.get('productURL')
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT 1 FROM favorite_lists WHERE id = ? AND email = ?", (list_id, email))
-            if not cursor.fetchone():
-                return jsonify({"error": "Liste introuvable."}), 404
-            cursor.execute("INSERT INTO favorite_list_items (list_id, productURL) VALUES (?, ?)", (list_id, productURL))
-            conn.commit()
-            return jsonify({"message": "Ajouté à la liste"})
-    except Exception as e: return jsonify({"error": str(e)}), 500
+        if not lists_repository.list_belongs_to_email(list_id, email):
+            return jsonify({"error": "Liste introuvable."}), 404
+        lists_repository.add_item_to_list(list_id, product_url)
+        return jsonify({"message": "Ajouté à la liste"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/notifications', methods=['GET'])
 def get_notifications():
-    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
-    email = session['email']
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM in_app_notifications WHERE email = ? ORDER BY date DESC", (email,))
-            return jsonify([dict(row) for row in cursor.fetchall()])
-    except Exception as e: return jsonify({"error": str(e)}), 500
+        return jsonify(notifications_repository.get_notifications_by_email(session['email']))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/notifications/read', methods=['POST'])
 def mark_notifications_read():
     """Marque toutes les notifications de l'utilisateur comme lues."""
-    if 'email' not in session: return jsonify({"error": "Non authentifié"}), 401
-    email = session['email']
+    if 'email' not in session:
+        return jsonify({"error": "Non authentifié"}), 401
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("UPDATE in_app_notifications SET is_read = 1 WHERE email = ? AND is_read = 0", (email,))
-            conn.commit()
+        notifications_repository.mark_all_notifications_read(session['email'])
         return jsonify({"message": "Notifications marquées comme lues."})
-    except Exception as e: return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/favorites', methods=['POST'])
@@ -688,34 +474,17 @@ def add_favorite():
     """Ajoute un produit aux favoris."""
     if 'email' not in session:
         return jsonify({"error": "Non authentifié"}), 401
-    
+
     email = session['email']
-    data = request.json
+    favorite_payload = request.json
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT OR REPLACE INTO favorites 
-                (email, description, price, imageURL, productURL, source, sourceLogo, rating, reviewCount)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                email, 
-                data.get('description'), 
-                data.get('price'), 
-                data.get('imageURL'), 
-                data.get('productURL'), 
-                data.get('source'), 
-                data.get('sourceLogo'), 
-                data.get('rating'), 
-                data.get('reviewCount')
-            ))
-            
-            # Ajouter à l'historique des prix lors de l'ajout en favori
-            num_price = extract_price(str(data.get('price')))
-            if num_price != float('inf'):
-                cursor.execute("INSERT INTO price_history (productURL, price) VALUES (?, ?)", (data.get('productURL'), num_price))
-            
-            conn.commit()
+        favorites_repository.upsert_favorite(email, favorite_payload)
+
+        # Ajouter à l'historique des prix lors de l'ajout en favori
+        numeric_price = extract_price(str(favorite_payload.get('price')))
+        if numeric_price != float('inf'):
+            price_history_repository.insert_price_point(favorite_payload.get('productURL'), numeric_price)
+
         return jsonify({"message": "Favori ajouté avec succès."})
     except Exception as e:
         logging.error("Erreur lors de l'ajout du favori: %s", e)
@@ -727,14 +496,11 @@ def remove_favorite():
     """Supprime un produit des favoris."""
     if 'email' not in session:
         return jsonify({"error": "Non authentifié"}), 401
-    
+
     email = session['email']
-    productURL = request.json.get('productURL')
+    product_url = request.json.get('productURL')
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM favorites WHERE email = ? AND productURL = ?", (email, productURL))
-            conn.commit()
+        favorites_repository.delete_favorite(email, product_url)
         return jsonify({"message": "Favori supprimé avec succès."})
     except Exception as e:
         logging.error("Erreur lors de la suppression du favori: %s", e)
@@ -743,25 +509,19 @@ def remove_favorite():
 
 @app.route('/profile', methods=['GET'])
 def get_profile():
-    """Récupère le profil de l'utilisateur."""
+    """Récupère le profil de l'utilisateur (le crée avec des valeurs par défaut si inexistant)."""
     if 'email' not in session:
         return jsonify({"error": "Non authentifié"}), 401
-    
+
     email = session['email']
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM user_profile WHERE email = ?", (email,))
-            row = cursor.fetchone()
-            if row:
-                return jsonify(dict(row))
-            else:
-                # Créer un profil par défaut si inexistant
-                display_name = email.split('@')[0]
-                cursor.execute("INSERT INTO user_profile (email, display_name) VALUES (?, ?)", (email, display_name))
-                conn.commit()
-                return jsonify({"email": email, "display_name": display_name, "notifications_enabled": 1})
+        profile = profile_repository.get_profile_by_email(email)
+        if profile:
+            return jsonify(dict(profile))
+
+        display_name = email.split('@')[0]
+        profile_repository.create_default_profile(email, display_name)
+        return jsonify({"email": email, "display_name": display_name, "notifications_enabled": 1})
     except Exception as e:
         logging.error("Erreur lors de la récupération du profil: %s", e)
         return jsonify({"error": str(e)}), 500
@@ -772,20 +532,14 @@ def update_profile():
     """Met à jour le profil de l'utilisateur."""
     if 'email' not in session:
         return jsonify({"error": "Non authentifié"}), 401
-    
+
     email = session['email']
-    data = request.json
-    display_name = data.get('display_name')
-    notifications_enabled = 1 if data.get('notifications_enabled') else 0
-    
+    profile_payload = request.json
+    display_name = profile_payload.get('display_name')
+    notifications_enabled = 1 if profile_payload.get('notifications_enabled') else 0
+
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT OR REPLACE INTO user_profile (email, display_name, notifications_enabled)
-                VALUES (?, ?, ?)
-            """, (email, display_name, notifications_enabled))
-            conn.commit()
+        profile_repository.upsert_profile(email, display_name, notifications_enabled)
         return jsonify({"message": "Profil mis à jour avec succès."})
     except Exception as e:
         logging.error("Erreur lors de la mise à jour du profil: %s", e)
@@ -806,8 +560,8 @@ def get_status():
 @app.route('/forgot_password', methods=['POST'])
 def forgot_password():
     """Envoie un email de réinitialisation de mot de passe via Firebase."""
-    data = request.get_json()
-    email = data.get("email")
+    forgot_password_payload = request.get_json()
+    email = forgot_password_payload.get("email")
     if not email:
         return jsonify({"error": "Email requis."}), 400
     try:
@@ -830,10 +584,7 @@ def mark_favorites(results: list, email: str | None) -> list:
     if not email:
         return copies
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT productURL FROM favorites WHERE email = ?", (email,))
-            favorite_urls = {row[0] for row in cursor.fetchall()}
+        favorite_urls = favorites_repository.get_favorite_urls_by_email(email)
         for record in copies:
             record["isFavorite"] = record.get("productURL") in favorite_urls
     except Exception as e:
@@ -878,10 +629,10 @@ def subscribe():
     (comportement historique). Sinon, l'alerte n'est déclenchée que si la baisse
     atteint au moins ce pourcentage.
     """
-    data = request.get_json()
-    query = data.get("query") if data else None
+    subscribe_payload = request.get_json()
+    query = subscribe_payload.get("query") if subscribe_payload else None
     email = session.get("email")
-    threshold_percent = data.get("threshold_percent") if data else None
+    threshold_percent = subscribe_payload.get("threshold_percent") if subscribe_payload else None
     if threshold_percent is not None:
         try:
             threshold_percent = float(threshold_percent)
@@ -896,24 +647,20 @@ def subscribe():
         if not results:
             return jsonify({"message": "Aucun produit trouvé pour la requête."}), 404
 
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            count = 0
-            for record in results:
-                product_url = record.get("productURL", "").strip()
-                initial_price = record.get("numeric_price", extract_price(str(record.get("price", ""))))
-                if product_url and initial_price != float('inf'):
-                    cursor.execute("""
-                        INSERT INTO subscriptions (product_url, initial_price, email, threshold_percent)
-                        VALUES (?, ?, ?, ?)
-                    """, (product_url, initial_price, email, threshold_percent))
-                    count += 1
-            conn.commit()
-        logging.info("Abonnement enregistré pour le query '%s' pour %s (%d produits).", query, email, count)
-        return jsonify({"message": f"Abonnement enregistré pour {count} produits.", "count": count})
+        subscribed_count = 0
+        for record in results:
+            product_url = record.get("productURL", "").strip()
+            initial_price = record.get("numeric_price", extract_price(str(record.get("price", ""))))
+            if product_url and initial_price != float('inf'):
+                subscriptions_repository.insert_subscription(product_url, email, initial_price, threshold_percent)
+                subscribed_count += 1
+
+        logging.info("Abonnement enregistré pour le query '%s' pour %s (%d produits).", query, email, subscribed_count)
+        return jsonify({"message": f"Abonnement enregistré pour {subscribed_count} produits.", "count": subscribed_count})
     except Exception as e:
         logging.error("Erreur dans /subscribe: %s", e)
         return jsonify({"error": str(e)}), 500
+
 
 #########################
 # Fonction de récupération du prix actuel d'un produit
@@ -933,23 +680,15 @@ _LIVE_RECHECK_SCRAPERS = {
 def get_current_price(product_url: str) -> float:
     """
     Récupère le prix actuel d'un produit abonné.
-    - Glotelho/Leclerc : relance une recherche par mot-clé (le nom du produit) et retrouve
-      la ligne correspondant à productURL pour en extraire le prix réel.
+    - Glotelho/Leclerc/Auchan : relance une recherche par mot-clé (le nom du produit) et
+      retrouve la ligne correspondant à productURL pour en extraire le prix réel.
     - Amazon/Walmart/autre : retourne le dernier prix connu (articles.last_price), sans
       relancer de scraping automatique.
     - Si le produit n'est pas retrouvé (ex: disparu du site), retourne aussi last_price
       pour ne pas déclencher de fausse alerte de baisse.
     """
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT source, description, last_price FROM articles WHERE productURL = ?",
-                (product_url,)
-            )
-            article = cursor.fetchone()
-
+        article = articles_repository.get_article_by_url(product_url)
         if article is None:
             return float('inf')
 
@@ -976,29 +715,24 @@ def get_current_price(product_url: str) -> float:
 def send_email_alert(email: str, product_url: str, current_price: float) -> None:
     """
     Envoie un email d'alerte lorsque le prix d'un produit a baissé.
-    Utilise le serveur SMTP de Sendinblue.
+    Utilise le serveur SMTP configuré (voir config.py).
     """
-    smtp_server = os.getenv("SMTP_SERVER")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_username = os.getenv("SMTP_USERNAME")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    from_email = os.getenv("SMTP_FROM_EMAIL")
-    if not all([smtp_server, smtp_username, smtp_password, from_email]):
+    if not all([config.SMTP_SERVER, config.SMTP_USERNAME, config.SMTP_PASSWORD, config.SMTP_FROM_EMAIL]):
         logging.error("Configuration SMTP manquante : impossible d'envoyer l'email d'alerte.")
         return
     subject = "Alerte: Le prix de votre produit a baissé!"
     body = (f"Bonjour,\n\nLe prix de l'article suivant a baissé : {product_url}\n"
             f"Nouveau prix : {format_price(current_price)}\n\nCordialement,\nVotre équipe")
-    msg = MIMEMultipart()
-    msg["From"] = from_email
-    msg["To"] = email
-    msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain"))
+    message = MIMEMultipart()
+    message["From"] = config.SMTP_FROM_EMAIL
+    message["To"] = email
+    message["Subject"] = subject
+    message.attach(MIMEText(body, "plain"))
     try:
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
+        with smtplib.SMTP(config.SMTP_SERVER, config.SMTP_PORT) as server:
             server.starttls()
-            server.login(smtp_username, smtp_password)
-            server.send_message(msg)
+            server.login(config.SMTP_USERNAME, config.SMTP_PASSWORD)
+            server.send_message(message)
         logging.info("Email envoyé à %s", email)
     except Exception as e:
         logging.error("Erreur lors de l'envoi de l'email à %s: %s", email, e)
@@ -1013,57 +747,42 @@ def run_price_check() -> list:
     Envoie un email d'alerte, une notification in-app et met à jour la BDD.
     """
     try:
-        with sqlite3.connect("subscriptions.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, product_url, initial_price, email, threshold_percent FROM subscriptions")
-            subscriptions = cursor.fetchall()
-            alerts_triggered = []
-            for sub in subscriptions:
-                sub_id, product_url, baseline_price, email, threshold_percent = sub
-                current_price = get_current_price(product_url)
-                if current_price == float('inf'):
-                    # Produit introuvable (pas encore dans articles, ou disparu) : on ignore
-                    # ce tour plutôt que de polluer l'historique avec un prix invalide.
+        alerts_triggered = []
+        for subscription in subscriptions_repository.get_all_subscriptions():
+            sub_id, product_url, baseline_price, email, threshold_percent = subscription
+            current_price = get_current_price(product_url)
+            if current_price == float('inf'):
+                # Produit introuvable (pas encore dans articles, ou disparu) : on ignore
+                # ce tour plutôt que de polluer l'historique avec un prix invalide.
+                continue
+
+            # Enregistrer systématiquement dans l'historique
+            price_history_repository.insert_price_point(product_url, current_price)
+
+            if current_price < baseline_price:
+                drop_percent = (baseline_price - current_price) / baseline_price * 100
+                # threshold_percent NULL = comportement historique (toute baisse alerte).
+                meets_threshold = threshold_percent is None or drop_percent >= threshold_percent
+                if not meets_threshold:
                     continue
 
-                # Enregistrer systématiquement dans l'historique
-                cursor.execute("INSERT INTO price_history (productURL, price) VALUES (?, ?)", (product_url, current_price))
+                # Alerte Email (respecte la préférence utilisateur)
+                if profile_repository.get_email_notifications_enabled(email):
+                    send_email_alert(email, product_url, current_price)
 
-                if current_price < baseline_price:
-                    drop_percent = (baseline_price - current_price) / baseline_price * 100
-                    # threshold_percent NULL = comportement historique (toute baisse alerte).
-                    meets_threshold = threshold_percent is None or drop_percent >= threshold_percent
-                    if not meets_threshold:
-                        continue
+                # Alerte In-App (toujours envoyée, ce n'est pas ce que contrôle la case profil)
+                message = f"Le prix du produit a baissé à {format_price(current_price)} !"
+                notifications_repository.insert_notification(email, message, product_url)
 
-                    cursor.execute(
-                        "SELECT notifications_enabled FROM user_profile WHERE email = ?",
-                        (email,)
-                    )
-                    profile_row = cursor.fetchone()
-                    # Par défaut (pas de profil trouvé), notifications activées.
-                    email_enabled = profile_row[0] if profile_row else 1
+                alerts_triggered.append({
+                    "subscription_id": sub_id,
+                    "email": email,
+                    "product_url": product_url,
+                    "current_price": format_price(current_price),
+                    "previous_price": format_price(baseline_price)
+                })
+                subscriptions_repository.update_subscription_reference_price(sub_id, current_price)
 
-                    # Alerte Email (respecte la préférence utilisateur)
-                    if email_enabled:
-                        send_email_alert(email, product_url, current_price)
-
-                    # Alerte In-App (toujours envoyée, ce n'est pas ce que contrôle la case profil)
-                    message = f"Le prix du produit a baissé à {format_price(current_price)} !"
-                    cursor.execute("""
-                        INSERT INTO in_app_notifications (email, message, productURL)
-                        VALUES (?, ?, ?)
-                    """, (email, message, product_url))
-
-                    alerts_triggered.append({
-                        "subscription_id": sub_id,
-                        "email": email,
-                        "product_url": product_url,
-                        "current_price": format_price(current_price),
-                        "previous_price": format_price(baseline_price)
-                    })
-                    cursor.execute("UPDATE subscriptions SET initial_price = ? WHERE id = ?", (current_price, sub_id))
-            conn.commit()
         logging.info("Vérification terminée. Alertes déclenchées : %s", alerts_triggered)
         return alerts_triggered
     except Exception as e:
