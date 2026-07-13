@@ -4,7 +4,7 @@ export const environment = {
   // sous-domaine du nom du service tant qu'il est disponible ; si un suffixe a été
   // ajouté (nom déjà pris), remplacer cette valeur par l'URL réelle affichée dans
   // le dashboard Render puis rebuilder le client.
-  apiUrl: 'https://shopwise-client.onrender.com',
+  apiUrl: 'https://shopwise-server.onrender.com',
   firebase: {
     apiKey: "AIzaSyAdl0bt5ww9Dxxr-ozi55hV3abvrbEwwKA",
     authDomain: "shopwise-5f5f1.firebaseapp.com",
