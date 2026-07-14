@@ -54,6 +54,10 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL")
 
+# --- Monitoring d'erreurs (Sentry) ---
+# Optionnel : si absent, le monitoring est simplement désactivé (voir app.py).
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+
 
 def create_firebase_auth():
     """Initialise Firebase avec FIREBASE_CONFIG et retourne le client d'authentification."""

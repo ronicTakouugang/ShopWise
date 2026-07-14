@@ -3,8 +3,10 @@
 # Doc : https://render.com/docs/blueprint-spec
 #
 # À faire une fois le blueprint appliqué (dashboard Render) :
-# - Remplir les variables marquées "sync: false" (Firebase, SMTP) : ce sont des
-#   secrets, ils ne doivent jamais être committés dans ce fichier.
+# - Remplir les variables marquées "sync: false" (Firebase, SMTP, Sentry) : ce
+#   sont des secrets, ils ne doivent jamais être committés dans ce fichier.
+#   SENTRY_DSN est optionnel : sans lui, le monitoring d'erreurs reste désactivé,
+#   le reste de l'app n'est pas affecté.
 # - Le Postgres free tier de Render expire après 90 jours d'inactivité : le
 #   recréer (et remettre à jour DATABASE_URL) si besoin.
 databases:
@@ -64,6 +66,9 @@ services:
       - key: SMTP_PASSWORD
         sync: false
       - key: SMTP_FROM_EMAIL
+        sync: false
+      # Optionnel : monitoring d'erreurs Sentry, désactivé si absent (voir app.py).
+      - key: SENTRY_DSN
         sync: false
 
   - type: web

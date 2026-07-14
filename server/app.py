@@ -19,6 +19,20 @@ from extensions import limiter
 from routes import register_blueprints
 from services import price_alert_service
 
+# Optionnel : désactivé si SENTRY_DSN n'est pas défini (dev local, ou tant que le
+# projet Sentry n'a pas été créé). Initialisé avant la création de l'app pour
+# capturer aussi les erreurs qui surviendraient pendant son démarrage.
+if config.SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+
+    sentry_sdk.init(
+        dsn=config.SENTRY_DSN,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
+
 app = Flask(__name__)
 app.secret_key = config.FLASK_SECRET_KEY
 
