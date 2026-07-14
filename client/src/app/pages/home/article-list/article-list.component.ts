@@ -5,13 +5,16 @@ import {Article} from './service/article';
 import {FormsModule} from '@angular/forms';
 import {CommonModule} from '@angular/common';
 import {LoaderService} from '../../../shareds/loader/services/loader.service';
+import {CompareService} from '../../../shareds/compare/compare.service';
+import {CompareBarComponent} from '../../../shareds/compare/compare-bar/compare-bar.component';
 
 @Component({
   selector: 'app-article-list',
   imports: [
     ArticleComponent,
     FormsModule,
-    CommonModule
+    CommonModule,
+    CompareBarComponent
   ],
   templateUrl: './article-list.component.html',
   standalone: true,
@@ -26,6 +29,8 @@ export class ArticleListComponent implements OnInit{
   // Filtres et Tri
   sortBy: string = 'relevance';
   filterSource: string = 'all';
+  minPrice: number | null = null;
+  maxPrice: number | null = null;
 
   // Pagination
   currentPage: number = 1;
@@ -34,7 +39,11 @@ export class ArticleListComponent implements OnInit{
   isLoading: boolean = false;
   hasError: boolean = false;
 
-  constructor(public articlesService:ArticleService, private loaderService: LoaderService) {
+  constructor(
+    public articlesService:ArticleService,
+    private loaderService: LoaderService,
+    public compareService: CompareService
+  ) {
   }
 
   ngOnInit(): void {
@@ -80,6 +89,18 @@ export class ArticleListComponent implements OnInit{
       result = result.filter(a => a.source.toLowerCase() === this.filterSource.toLowerCase());
     }
 
+    // Filtrage par fourchette de prix : un produit de prix inconnu ne peut pas être
+    // confirmé dans la fourchette, on l'exclut dès qu'un des deux bornes est active.
+    if (this.minPrice != null || this.maxPrice != null) {
+      result = result.filter(a => {
+        const price = a.numeric_price;
+        if (price == null || price >= ArticleListComponent.UNKNOWN_PRICE_SENTINEL) return false;
+        if (this.minPrice != null && price < this.minPrice) return false;
+        if (this.maxPrice != null && price > this.maxPrice) return false;
+        return true;
+      });
+    }
+
     // Tri
     if (this.sortBy === 'price_asc') {
       result.sort((a, b) => this.comparePricesWithUnknownsLast(a, b, true));
@@ -116,5 +137,11 @@ export class ArticleListComponent implements OnInit{
 
   get sources(): string[] {
     return [...new Set(this.allArticles.map(a => a.source))];
+  }
+
+  resetPriceFilter(): void {
+    this.minPrice = null;
+    this.maxPrice = null;
+    this.applyFiltersAndSort();
   }
 }

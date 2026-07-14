@@ -16,6 +16,33 @@
         <option *ngFor="let src of sources" [value]="src">{{src}}</option>
       </select>
     </div>
+
+    <div class="filter-group price-range-group">
+      <i class="pi pi-euro"></i>
+      <input
+        type="number"
+        min="0"
+        placeholder="Prix min"
+        class="price-range-input"
+        [(ngModel)]="minPrice"
+        (change)="applyFiltersAndSort()"/>
+      <span class="price-range-sep">–</span>
+      <input
+        type="number"
+        min="0"
+        placeholder="Prix max"
+        class="price-range-input"
+        [(ngModel)]="maxPrice"
+        (change)="applyFiltersAndSort()"/>
+      <button
+        type="button"
+        class="price-range-reset"
+        *ngIf="minPrice != null || maxPrice != null"
+        (click)="resetPriceFilter()"
+        title="Réinitialiser la fourchette de prix">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -46,7 +73,16 @@
       </div>
     } @else if (articlesService.hasSearched) {
       @for (article of paginatedArticles; track article.productURL){
-        <app-article [article]="article"/>
+        <div class="compare-item-wrapper" [class.selected]="compareService.isComparing(article)">
+          <app-article [article]="article"/>
+          <button
+            class="compare-checkbox-btn"
+            [class.selected]="compareService.isComparing(article)"
+            (click)="compareService.toggle(article)">
+            <i class="pi" [ngClass]="compareService.isComparing(article) ? 'pi-check-circle' : 'pi-plus-circle'"></i>
+            {{ compareService.isComparing(article) ? 'Prêt pour comparaison' : 'Comparer' }}
+          </button>
+        </div>
       }
     }
   </ng-container>
@@ -57,3 +93,5 @@
   <span>Page {{currentPage}} sur {{totalPages}}</span>
   <button (click)="nextPage()" [disabled]="currentPage === totalPages">Suivant</button>
 </div>
+
+<app-compare-bar></app-compare-bar>

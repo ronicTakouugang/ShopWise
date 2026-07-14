@@ -6,25 +6,24 @@ import { Article } from '../home/article-list/service/article';
 import { ArticleComponent } from '../home/article-list/article/article.component';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import {ToastService} from '../../shareds/toast/services/toast.service';
+import { CompareService } from '../../shareds/compare/compare.service';
+import { CompareBarComponent } from '../../shareds/compare/compare-bar/compare-bar.component';
 
 @Component({
   selector: 'app-favorites',
   standalone: true,
-  imports: [CommonModule, ArticleComponent, RouterLink, FormsModule],
+  imports: [CommonModule, ArticleComponent, RouterLink, FormsModule, CompareBarComponent],
   templateUrl: './favorites.component.html',
   styleUrl: './favorites.component.scss'
 })
 export class FavoritesComponent implements OnInit {
   favorites: Article[] = [];
-  compareList: Article[] = [];
   apiUrl = environment.apiUrl;
   loading: boolean = true;
   loadError: boolean = false;
   sortBy: string = 'date_added';
-  showComparisonPanel: boolean = false;
 
-  constructor(private http: HttpClient, private toastService: ToastService) {}
+  constructor(private http: HttpClient, public compareService: CompareService) {}
 
   ngOnInit(): void {
     this.loadFavorites();
@@ -51,30 +50,13 @@ export class FavoritesComponent implements OnInit {
     this.loadFavorites();
   }
 
-  toggleCompare(article: Article) {
-    const index = this.compareList.findIndex(a => a.productURL === article.productURL);
-    if (index > -1) {
-      this.compareList.splice(index, 1);
-    } else {
-      if (this.compareList.length < 3) {
-        this.compareList.push(article);
-      } else {
-        this.toastService.showWarnCustom('Vous pouvez comparer 3 produits maximum. Retirez-en un pour en ajouter un autre.', 'Limite atteinte');
-      }
-    }
-  }
-
-  isComparing(article: Article): boolean {
-    return this.compareList.some(a => a.productURL === article.productURL);
-  }
-
   onFavoriteChanged(article: Article, isFav: boolean) {
     if (!isFav) {
       // Si le produit est retiré des favoris, on l'enlève de la liste locale
       this.favorites = this.favorites.filter(f => f.productURL !== article.productURL);
 
       // On l'enlève aussi de la liste de comparaison s'il y était
-      this.compareList = this.compareList.filter(f => f.productURL !== article.productURL);
+      this.compareService.remove(article);
     }
   }
 }

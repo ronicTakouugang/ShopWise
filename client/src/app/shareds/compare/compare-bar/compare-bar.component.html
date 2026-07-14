@@ -1,0 +1,35 @@
+<div class="comparison-floating-bar" *ngIf="compareService.compareList.length >= 2">
+  <div class="comparison-info">
+    <span class="count">{{compareService.compareList.length}}</span>
+    <span>produits sélectionnés pour comparaison</span>
+  </div>
+  <div class="comparison-actions">
+    <button class="clear-btn" (click)="compareService.clear()">Vider</button>
+    <button class="compare-btn" (click)="showComparisonPanel = true">
+      Comparer maintenant
+    </button>
+  </div>
+</div>
+
+<div class="comparison-panel-overlay" *ngIf="showComparisonPanel" (click)="showComparisonPanel = false">
+  <div class="comparison-panel" (click)="$event.stopPropagation()">
+    <div class="panel-header">
+      <h3>Comparaison rapide</h3>
+      <button class="close-panel" (click)="showComparisonPanel = false"><i class="pi pi-times"></i></button>
+    </div>
+    <div class="comparison-grid">
+      <div class="comparison-column" *ngFor="let item of compareService.compareList">
+        <div class="img-container">
+          <img [src]="item.imageURL" [alt]="item.description">
+        </div>
+        <p class="title">{{item.description}}</p>
+        <p class="price">{{item.price}}</p>
+        <p class="source">{{item.source}}</p>
+        <button class="remove-btn" (click)="remove(item)">
+          <i class="pi pi-trash"></i>
+          Retirer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

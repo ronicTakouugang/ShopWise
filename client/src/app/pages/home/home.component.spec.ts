@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { MessageService } from 'primeng/api';
 import { environment } from '../../../environments/environment';
 
 import { HomeComponent } from './home.component';
@@ -19,7 +20,9 @@ describe('HomeComponent', () => {
       imports: [HomeComponent],
       // app-history (rendu quand authService.isAuth passe à true) contient un p-panel
       // PrimeNG, qui a besoin d'un provider d'animations pour ne pas planter.
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideNoopAnimations()]
+      // MessageService : app-compare-bar (via ArticleListComponent) utilise
+      // CompareService -> ToastService -> MessageService.
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideNoopAnimations(), MessageService]
     })
     .compileComponents();
 
