@@ -13,6 +13,15 @@ retourne toujours un objet exposant .execute(query, params) avec des placeholder
 avant d'exécuter. Cette traduction naïve suppose qu'aucune requête ne contient un
 '?' littéral hors placeholder, ce qui est le cas de toutes les requêtes de ce
 projet (pas de JSON ni de LIKE avec '?' comme caractère de données).
+
+Sur Postgres, les connexions viennent d'un pool (voir _get_pg_pool) plutôt que
+d'un psycopg2.connect() par appel : chaque repository ouvre/ferme une connexion
+à chaque fonction (get_connection() par requête), ce qui est gratuit sur SQLite
+(fichier local) mais coûte un aller-retour réseau + handshake TLS sur Postgres.
+En pratique, persist_articles() (appelée après chaque recherche, jusqu'à ~180
+lignes) sans pool a fait dépasser le timeout gunicorn de 60s en production - le
+pool réutilise des connexions déjà établies au lieu d'en ouvrir une nouvelle
+à chaque fois.
 """
 import logging
 import sqlite3
@@ -24,13 +33,31 @@ DATABASE_PATH = "subscriptions.db"
 
 IS_POSTGRES = bool(config.DATABASE_URL)
 
+_pg_pool = None
+
+
+def _get_pg_pool():
+    global _pg_pool
+    if _pg_pool is None:
+        import psycopg2.extras
+        import psycopg2.pool
+        # Conservateur (maxconn=5) : les instances Postgres gratuites (Render, etc.)
+        # plafonnent souvent le nombre de connexions simultanées assez bas.
+        _pg_pool = psycopg2.pool.ThreadedConnectionPool(
+            1, 5, config.DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor
+        )
+    return _pg_pool
+
 
 class _PostgresConnection:
-    """Enveloppe une connexion psycopg2 pour exposer la même API que sqlite3.Connection
-    (.execute() direct sur la connexion, lignes accessibles par nom de colonne)."""
+    """Enveloppe une connexion psycopg2 issue du pool pour exposer la même API
+    que sqlite3.Connection (.execute() direct sur la connexion, lignes
+    accessibles par nom de colonne), et la restitue au pool en fin de vie au
+    lieu de fermer la connexion TCP sous-jacente."""
 
-    def __init__(self, raw_connection):
+    def __init__(self, raw_connection, pool):
         self._raw = raw_connection
+        self._pool = pool
 
     def execute(self, query: str, params: tuple = ()):
         cursor = self._raw.cursor()
@@ -47,7 +74,7 @@ class _PostgresConnection:
         self._raw.rollback()
 
     def close(self):
-        self._raw.close()
+        self._pool.putconn(self._raw)
 
     def __enter__(self):
         return self
@@ -57,7 +84,7 @@ class _PostgresConnection:
             self._raw.commit()
         else:
             self._raw.rollback()
-        self._raw.close()
+        self._pool.putconn(self._raw)
 
 
 def get_connection():
@@ -67,10 +94,9 @@ def get_connection():
     (accès par nom de colonne via row["colonne"]) dans les deux cas.
     """
     if IS_POSTGRES:
-        import psycopg2
-        import psycopg2.extras
-        raw_connection = psycopg2.connect(config.DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-        return _PostgresConnection(raw_connection)
+        pool = _get_pg_pool()
+        raw_connection = pool.getconn()
+        return _PostgresConnection(raw_connection, pool)
 
     connection = sqlite3.connect(DATABASE_PATH)
     connection.row_factory = sqlite3.Row
