@@ -82,7 +82,7 @@ class TestPersistArticles:
 
 
 class TestDoSearch:
-    @patch("services.search_service.persist_articles")
+    @patch("services.search_service._persist_in_background")
     @patch("services.search_service.scrape_auchan")
     @patch("services.search_service.scrape_leclerc")
     @patch("services.search_service.scrape_materielnet")
@@ -109,7 +109,7 @@ class TestDoSearch:
         assert urls.count("https://dup") == 1
         mock_persist.assert_called_once()
 
-    @patch("services.search_service.persist_articles")
+    @patch("services.search_service._persist_in_background")
     @patch("services.search_service.scrape_auchan")
     @patch("services.search_service.scrape_leclerc")
     @patch("services.search_service.scrape_materielnet")
@@ -128,7 +128,7 @@ class TestDoSearch:
         assert len(results) == 1
         assert results[0]["productURL"] == "https://ok"
 
-    @patch("services.search_service.persist_articles")
+    @patch("services.search_service._persist_in_background")
     @patch("services.search_service.scrape_auchan")
     @patch("services.search_service.scrape_leclerc")
     @patch("services.search_service.scrape_materielnet")

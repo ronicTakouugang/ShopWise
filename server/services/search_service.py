@@ -97,6 +97,17 @@ def compute_deal_attributes(record: dict, query: str = "") -> dict:
     return record
 
 
+def _persist_in_background(records: list) -> None:
+    """
+    Lance persist_articles() dans un thread séparé, sans bloquer l'appelant. Isolé
+    dans sa propre fonction (plutôt qu'un threading.Thread(...) inline dans
+    do_search) pour rester mockable simplement dans les tests, sans avoir à
+    remplacer threading.Thread globalement (do_search utilise aussi un
+    ThreadPoolExecutor, qui s'appuie lui-même sur threading.Thread en interne).
+    """
+    threading.Thread(target=persist_articles, args=(records,), daemon=True).start()
+
+
 def persist_articles(records: list) -> None:
     """
     Met à jour le catalogue d'articles et enregistre un point d'historique de prix
@@ -220,7 +231,13 @@ def do_search(query: str) -> list:
         # En cas d'erreur de tri, retourner les résultats non triés mais fonctionnels
         sorted_results = filtered_results
 
-    persist_articles(sorted_results)
+    # En tâche de fond : persist_articles() écrit chaque résultat en base une requête
+    # à la fois (jusqu'à plusieurs centaines par recherche), ce qui sur le Postgres
+    # de prod (aller-retour réseau par requête, cf. database.py) domine largement le
+    # temps de réponse - l'utilisateur n'a pas besoin d'attendre ces écritures pour
+    # voir ses résultats, seul le prochain /analytics ou la prochaine recherche du
+    # même produit en dépend.
+    _persist_in_background(sorted_results)
     return sorted_results
 
 
