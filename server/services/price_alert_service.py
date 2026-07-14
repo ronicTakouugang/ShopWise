@@ -4,6 +4,7 @@ vérification périodique des abonnements, envoi des alertes (email + in-app).
 """
 import logging
 import smtplib
+from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -30,6 +31,13 @@ _LIVE_RECHECK_SCRAPERS = {
     "E.Leclerc": scrape_leclerc,
     "Auchan": scrape_auchan,
 }
+
+# Délai global pour récupérer le prix actuel de tous les abonnements, en parallèle.
+# Sous la limite de 60s du worker gunicorn (voir Dockerfile) avec une marge : sans
+# ça, un scraping lent sur un seul abonnement peut faire dépasser ce délai et tuer
+# toute la requête HTTP de /check_prices sans réponse (le job planifié toutes les
+# 2h n'est lui pas concerné, il tourne en tâche de fond hors requête HTTP).
+PRICE_CHECK_TIMEOUT_SECONDS = 45
 
 
 def parse_threshold_percent(raw_threshold) -> float | None:
@@ -104,14 +112,52 @@ def send_email_alert(email: str, product_url: str, current_price: float) -> None
         logging.error("Erreur lors de l'envoi de l'email à %s: %s", email, e)
 
 
+def _fetch_current_prices(subscriptions: list) -> dict:
+    """
+    Récupère le prix actuel de chaque abonnement en parallèle, sous un délai global
+    (PRICE_CHECK_TIMEOUT_SECONDS). Un abonnement dont la vérification n'a pas fini à
+    temps est simplement absent du dict retourné : il sera retenté au prochain passage
+    (toutes les 2h, ou au prochain appel manuel de /check_prices), sans jamais bloquer
+    les abonnements plus rapides.
+    """
+    if not subscriptions:
+        return {}
+
+    executor = ThreadPoolExecutor(max_workers=min(10, len(subscriptions)))
+    try:
+        futures = {executor.submit(get_current_price, sub["product_url"]): sub for sub in subscriptions}
+        done, not_done = futures_wait(futures.keys(), timeout=PRICE_CHECK_TIMEOUT_SECONDS)
+
+        current_prices = {}
+        for future in done:
+            sub = futures[future]
+            try:
+                current_prices[sub["id"]] = future.result()
+            except Exception as e:
+                logging.error("Erreur lors de la vérification de '%s': %s", sub["product_url"], e)
+
+        for future in not_done:
+            sub = futures[future]
+            logging.warning(
+                "Vérification de '%s' trop lente (> %ds), reportée au prochain passage.",
+                sub["product_url"], PRICE_CHECK_TIMEOUT_SECONDS
+            )
+        return current_prices
+    finally:
+        executor.shutdown(wait=False)
+
+
 def run_price_check() -> list:
     """
     Vérifie si le prix des produits abonnés a baissé.
     Envoie un email d'alerte, une notification in-app et met à jour la BDD.
     """
     try:
+        subscriptions = subscriptions_repository.get_all_subscriptions()
+        current_prices = _fetch_current_prices(subscriptions)
+
         alerts_triggered = []
-        for subscription in subscriptions_repository.get_all_subscriptions():
+        for subscription in subscriptions:
             # Accès par nom de colonne plutôt que déballage positionnel : une ligne
             # Postgres (RealDictRow) n'est pas un tuple, contrairement à sqlite3.Row.
             sub_id = subscription["id"]
@@ -119,10 +165,11 @@ def run_price_check() -> list:
             baseline_price = subscription["initial_price"]
             email = subscription["email"]
             threshold_percent = subscription["threshold_percent"]
-            current_price = get_current_price(product_url)
+
+            current_price = current_prices.get(sub_id, float('inf'))
             if current_price == float('inf'):
-                # Produit introuvable (pas encore dans articles, ou disparu) : on ignore
-                # ce tour plutôt que de polluer l'historique avec un prix invalide.
+                # Produit introuvable, vérification en erreur, ou trop lente pour ce
+                # passage : on ignore ce tour plutôt que de polluer l'historique.
                 continue
 
             # Enregistrer systématiquement dans l'historique

@@ -207,3 +207,56 @@ class TestRunPriceCheck:
         assert alerts == []
         mock_send_email.assert_not_called()
         mock_notif_repo.insert_notification.assert_not_called()
+
+
+class TestFetchCurrentPrices:
+    def test_empty_subscriptions_returns_empty_dict_without_creating_executor(self):
+        assert price_alert_service._fetch_current_prices([]) == {}
+
+    @patch("services.price_alert_service.get_current_price")
+    def test_fetches_prices_for_all_subscriptions_in_parallel(self, mock_get_price):
+        mock_get_price.side_effect = lambda url: {"https://a": 10.0, "https://b": 20.0}[url]
+        subs = [
+            _subscription_row(1, "https://a", 15.0, "u1@example.com", None),
+            _subscription_row(2, "https://b", 25.0, "u2@example.com", None),
+        ]
+        prices = price_alert_service._fetch_current_prices(subs)
+        assert prices == {1: 10.0, 2: 20.0}
+
+    @patch("services.price_alert_service.get_current_price")
+    def test_slow_subscription_is_skipped_but_others_still_resolve(self, mock_get_price):
+        # Régression : une vérification lente sur un abonnement ne doit ni bloquer
+        # les autres, ni faire planter le reste du passage - juste être absente du
+        # résultat (retentée au prochain passage), pour éviter que /check_prices
+        # dépasse le timeout du worker gunicorn comme observé en production.
+        import time
+
+        def slow_or_fast(url):
+            if url == "https://slow":
+                time.sleep(2)
+                return 5.0
+            return 10.0
+
+        mock_get_price.side_effect = slow_or_fast
+        subs = [
+            _subscription_row(1, "https://slow", 15.0, "u1@example.com", None),
+            _subscription_row(2, "https://fast", 15.0, "u2@example.com", None),
+        ]
+        with patch("services.price_alert_service.PRICE_CHECK_TIMEOUT_SECONDS", 0.2):
+            prices = price_alert_service._fetch_current_prices(subs)
+        assert prices == {2: 10.0}
+
+    @patch("services.price_alert_service.get_current_price")
+    def test_exception_for_one_subscription_does_not_affect_others(self, mock_get_price):
+        def maybe_raise(url):
+            if url == "https://broken":
+                raise RuntimeError("scraper crashed")
+            return 42.0
+
+        mock_get_price.side_effect = maybe_raise
+        subs = [
+            _subscription_row(1, "https://broken", 15.0, "u1@example.com", None),
+            _subscription_row(2, "https://ok", 15.0, "u2@example.com", None),
+        ]
+        prices = price_alert_service._fetch_current_prices(subs)
+        assert prices == {2: 42.0}
