@@ -12,28 +12,63 @@
   </div>
 
   <div class="auth-body">
-    <h2 class="auth-title">Connexion</h2>
-    <p class="auth-subtitle">Connectez-vous pour retrouver vos favoris</p>
+    @if (!forgotPasswordMode) {
+      <h2 class="auth-title">Connexion</h2>
+      <p class="auth-subtitle">Connectez-vous pour retrouver vos favoris</p>
 
-    <div class="field--content">
-      @if (errorMessage) {
-        <div class="p-error mb-2">{{ errorMessage }}</div>
-      }
-      <div class="input-wrapper">
-        <i class="pi pi-user input-icon"></i>
-        <input pInputText placeholder="E-mail" [(ngModel)]="email" class="auth-input"/>
+      <div class="field--content">
+        @if (errorMessage) {
+          <div class="p-error mb-2">{{ errorMessage }}</div>
+        }
+        <div class="input-wrapper">
+          <i class="pi pi-user input-icon"></i>
+          <input pInputText placeholder="E-mail" [(ngModel)]="email" class="auth-input"/>
+        </div>
+
+        <div class="input-wrapper">
+          <i class="pi pi-key input-icon"></i>
+          <p-password class="auth-password" [(ngModel)]="password" placeholder="Mot de passe" [toggleMask]="true" [feedback]="false"></p-password>
+        </div>
+
+        <div class="auth-footer" style="margin-top: -8px; text-align: right;">
+          <a (click)="toggleForgotPassword()" class="auth-link">Mot de passe oublié ?</a>
+        </div>
+
+        <p-button label="Confirmer" [loading]="loading" [disabled]="!isValidEmail() || !isValidPassword()" (click)="auth()" styleClass="auth-submit-btn"></p-button>
+
+        <div class="auth-footer">
+          <span class="compte">Pas de compte ? <a (click)="changeFormModal()" class="auth-link">Créer un compte</a></span>
+        </div>
       </div>
+    } @else {
+      <h2 class="auth-title">Mot de passe oublié</h2>
+      <p class="auth-subtitle">Entrez votre email, nous vous enverrons un lien de réinitialisation</p>
 
-      <div class="input-wrapper">
-        <i class="pi pi-key input-icon"></i>
-        <p-password class="auth-password" [(ngModel)]="password" placeholder="Mot de passe" [toggleMask]="true" [feedback]="false"></p-password>
+      <div class="field--content">
+        @if (resetEmailSent) {
+          <div class="p-success mb-2" style="color: #16a34a; font-size: 14px;">
+            <i class="pi pi-check-circle"></i>
+            Email envoyé ! Vérifiez votre boîte de réception.
+          </div>
+        } @else {
+          @if (errorMessage) {
+            <div class="p-error mb-2">{{ errorMessage }}</div>
+          }
+          <div class="input-wrapper">
+            <i class="pi pi-user input-icon"></i>
+            <input pInputText placeholder="E-mail" [(ngModel)]="email" class="auth-input"/>
+          </div>
+
+          <p-button label="Envoyer le lien" [loading]="loading" [disabled]="!isValidEmail()" (click)="sendResetLink()" styleClass="auth-submit-btn"></p-button>
+        }
+
+        <div class="auth-footer">
+          <a (click)="toggleForgotPassword()" class="auth-link">
+            <i class="pi pi-arrow-left" style="font-size: 11px; margin-right: 4px;"></i>
+            Retour à la connexion
+          </a>
+        </div>
       </div>
-
-      <p-button label="Confirmer" [loading]="loading" [disabled]="!isValidEmail() || !isValidPassword()" (click)="auth()" styleClass="auth-submit-btn"></p-button>
-
-      <div class="auth-footer">
-        <span class="compte">Pas de compte ? <a (click)="changeFormModal()" class="auth-link">Créer un compte</a></span>
-      </div>
-    </div>
+    }
   </div>
 </div>

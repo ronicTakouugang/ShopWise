@@ -106,4 +106,18 @@ export class AuthService {
       })
     );
   }
+
+  forgotPassword(email: string){
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+       return throwError(() => new Error("Email invalide."));
+    }
+    return this.http.post(`${this.apiUrl}/forgot_password`, { email: cleanEmail }, { withCredentials: true }).pipe(
+      timeout(25000),
+      catchError((err: any) => {
+        console.error("Erreur forgot password :", err)
+        return throwError(() => err);
+      })
+    );
+  }
 }

@@ -58,6 +58,29 @@ export class SignInComponent {
 
   loading: boolean = false;
   errorMessage: string = "";
+  forgotPasswordMode: boolean = false;
+  resetEmailSent: boolean = false;
+
+  toggleForgotPassword() {
+    this.forgotPasswordMode = !this.forgotPasswordMode;
+    this.resetEmailSent = false;
+    this.errorMessage = "";
+  }
+
+  sendResetLink() {
+    this.loading = true;
+    this.errorMessage = "";
+    this.authService.forgotPassword(this.email).subscribe({
+      next: () => {
+        this.loading = false;
+        this.resetEmailSent = true;
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err?.error?.error || "Impossible d'envoyer l'email. Vérifiez l'adresse saisie.";
+      }
+    });
+  }
 
   auth(){
     this.loading = true;
