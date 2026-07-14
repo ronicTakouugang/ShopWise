@@ -26,7 +26,7 @@ app.secret_key = config.FLASK_SECRET_KEY
 app.config.update(
     SESSION_COOKIE_SECURE=config.SESSION_COOKIE_SECURE,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SAMESITE=config.SESSION_COOKIE_SAMESITE,
 )
 
 CORS(app, supports_credentials=True, origins=config.CORS_ALLOWED_ORIGINS)

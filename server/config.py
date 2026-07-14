@@ -32,6 +32,15 @@ if os.getenv("CORS_ORIGIN"):
 # En local (http://localhost) le cookie de session doit rester non-Secure, sinon le
 # navigateur le refuse. Passer SESSION_COOKIE_SECURE=true en production (HTTPS).
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
+# En local, client (localhost:4200) et serveur (localhost:5000) sont "same-site"
+# (même hostname), donc SameSite=Lax suffit. En production, client et serveur sont
+# sur des sous-domaines Render différents (shopwise-client.onrender.com /
+# shopwise-server-xxxx.onrender.com) : pour le navigateur ce sont des sites
+# différents, et SameSite=Lax bloque alors l'envoi du cookie sur les appels AJAX
+# cross-site - la connexion réussit côté serveur mais le front ne le voit jamais.
+# SameSite=None (à définir via env var en prod) corrige ça ; il exige Secure=true,
+# déjà le cas en prod.
+SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
 
 # --- Base de données ---
 # Si DATABASE_URL est défini (ex: fourni automatiquement par Render pour son addon

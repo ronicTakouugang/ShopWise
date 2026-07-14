@@ -29,6 +29,11 @@ services:
         generateValue: true
       - key: SESSION_COOKIE_SECURE
         value: "true"
+      # Client et serveur sont sur des sous-domaines Render différents (sites
+      # différents du point de vue du navigateur) : SameSite=Lax bloquerait le
+      # cookie de session sur les appels cross-site depuis le client.
+      - key: SESSION_COOKIE_SAMESITE
+        value: "None"
       # Manuel plutôt que fromService : il faut l'URL complète avec schéma
       # (https://shopwise-client-xxxx.onrender.com), connue seulement après le
       # premier déploiement du static site.
