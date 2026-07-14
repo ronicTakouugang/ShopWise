@@ -1,4 +1,4 @@
-import { ApplicationConfig, ErrorHandler, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, ErrorHandler, provideZoneChangeDetection, isDevMode } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import * as Sentry from '@sentry/angular';
 
@@ -10,6 +10,7 @@ import {provideHttpClient, withInterceptors} from '@angular/common/http';
 import {loaderInterceptor} from './shareds/loader/services/loader.interceptor';
 import {MessageService} from 'primeng/api';
 import {ToastInterceptor} from './shareds/toast/services/toast.interceptor';
+import { provideServiceWorker } from '@angular/service-worker';
 
 
 export const appConfig: ApplicationConfig = {
@@ -34,5 +35,8 @@ export const appConfig: ApplicationConfig = {
     // Sans effet tant que Sentry.init() n'a pas été appelé (main.ts, conditionné
     // par environment.sentryDsn) : captureException est un no-op silencieux avant
     // init, donc ce provider peut rester actif inconditionnellement.
-    { provide: ErrorHandler, useValue: Sentry.createErrorHandler() }]
+    { provide: ErrorHandler, useValue: Sentry.createErrorHandler() }, provideServiceWorker('ngsw-worker.js', {
+            enabled: !isDevMode(),
+            registrationStrategy: 'registerWhenStable:30000'
+          })]
 };
