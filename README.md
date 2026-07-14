@@ -11,8 +11,8 @@ produit suivi baisse.
 
 ## Fonctionnalités
 
-- **Recherche multi-enseignes** : Amazon, Walmart, Glotelho, E.Leclerc et
-  Auchan sont interrogés en parallèle pour chaque recherche, avec un délai
+- **Recherche multi-enseignes** : Amazon, Glotelho, E.Leclerc, Auchan et
+  Materiel.net sont interrogés en parallèle pour chaque recherche, avec un délai
   commun pour qu'un site lent ou bloqué ne retarde jamais les autres.
 - **Classement par pertinence** : les résultats sont notés selon la
   correspondance avec les mots-clés, la disponibilité d'une image/d'un prix

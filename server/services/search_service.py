@@ -18,15 +18,15 @@ from scrapers.amazon_scraper import scrape_amazon
 from scrapers.auchan_scraper import scrape_auchan
 from scrapers.glotehlo_scraper import scrape_glotelho
 from scrapers.leclerc_scraper import scrape_leclerc
-from scrapers.walmart_scraper import scrape_walmart
+from scrapers.materielnet_scraper import scrape_materielnet
 from utils import extract_price, normalize_text
 
 # Délai maximum accordé à un site pour répondre avant qu'on l'écarte de la recherche.
-# Mesuré en conditions réelles : Amazon/Glotelho/Auchan/Leclerc terminent tous en
-# moins de 6s ; seul Walmart (anti-bot systématique) dépassait largement ce délai
-# pour 0 résultat, ce qui plombait la durée de TOUTE recherche à ~15-19s. Abaissé
-# à 8s (marge au-dessus des ~6s mesurés) plutôt que de retarder chaque recherche
-# pour un site qui ne contribue de toute façon quasiment jamais de résultats.
+# Mesuré en conditions réelles : Amazon/Glotelho/Auchan/Leclerc/Materiel.net terminent
+# tous en moins de 6s. Walmart (anti-bot systématique, 15-19s pour 0 résultat) a été
+# retiré de cette liste et remplacé par Materiel.net (voir git log) plutôt que de
+# retarder chaque recherche pour un site qui ne contribuait de toute façon quasiment
+# jamais de résultats.
 SCRAPER_TIMEOUT_SECONDS = 8
 
 # Réduit le nombre de requêtes réellement envoyées aux sites pour des recherches
@@ -141,7 +141,7 @@ def do_search(query: str) -> list:
         futures = {
             executor.submit(scrape_amazon, query): "Amazon",
             executor.submit(scrape_glotelho, query): "Glotelho",
-            executor.submit(scrape_walmart, query): "Walmart",
+            executor.submit(scrape_materielnet, query): "Materiel.net",
             executor.submit(scrape_leclerc, query): "Leclerc",
             executor.submit(scrape_auchan, query): "Auchan",
         }
@@ -171,7 +171,7 @@ def do_search(query: str) -> list:
 
         amazon_records = results_by_source.get("Amazon", [])
         glotehlo_records = results_by_source.get("Glotelho", [])
-        walmart_records = results_by_source.get("Walmart", [])
+        materielnet_records = results_by_source.get("Materiel.net", [])
         leclerc_records = results_by_source.get("Leclerc", [])
         auchan_records = results_by_source.get("Auchan", [])
     finally:
@@ -179,7 +179,7 @@ def do_search(query: str) -> list:
         # il se terminera de lui-même et sera simplement ignoré.
         executor.shutdown(wait=False)
 
-    combined_results = amazon_records + glotehlo_records + walmart_records + leclerc_records + auchan_records
+    combined_results = amazon_records + glotehlo_records + materielnet_records + leclerc_records + auchan_records
 
     filtered_results = []
     seen_urls = set()

@@ -85,11 +85,11 @@ class TestDoSearch:
     @patch("services.search_service.persist_articles")
     @patch("services.search_service.scrape_auchan")
     @patch("services.search_service.scrape_leclerc")
-    @patch("services.search_service.scrape_walmart")
+    @patch("services.search_service.scrape_materielnet")
     @patch("services.search_service.scrape_glotelho")
     @patch("services.search_service.scrape_amazon")
     def test_combines_dedupes_and_sorts_by_relevance_then_price(
-        self, mock_amazon, mock_glotelho, mock_walmart, mock_leclerc, mock_auchan, mock_persist
+        self, mock_amazon, mock_glotelho, mock_materielnet, mock_leclerc, mock_auchan, mock_persist
     ):
         mock_amazon.return_value = [
             {"description": "casque bluetooth", "price": "50 €", "productURL": "https://dup", "source": "Amazon"},
@@ -99,7 +99,7 @@ class TestDoSearch:
             {"description": "casque bluetooth", "price": "45 €", "productURL": "https://dup", "source": "Glotehlo"},
             {"description": "casque bluetooth pas cher", "price": "20 €", "productURL": "https://cheap", "source": "Glotehlo"},
         ]
-        mock_walmart.return_value = []
+        mock_materielnet.return_value = []
         mock_leclerc.return_value = []
         mock_auchan.return_value = []
 
@@ -112,15 +112,15 @@ class TestDoSearch:
     @patch("services.search_service.persist_articles")
     @patch("services.search_service.scrape_auchan")
     @patch("services.search_service.scrape_leclerc")
-    @patch("services.search_service.scrape_walmart")
+    @patch("services.search_service.scrape_materielnet")
     @patch("services.search_service.scrape_glotelho")
     @patch("services.search_service.scrape_amazon")
     def test_scraper_exception_does_not_break_other_results(
-        self, mock_amazon, mock_glotelho, mock_walmart, mock_leclerc, mock_auchan, mock_persist
+        self, mock_amazon, mock_glotelho, mock_materielnet, mock_leclerc, mock_auchan, mock_persist
     ):
         mock_amazon.side_effect = RuntimeError("boom")
         mock_glotelho.return_value = [{"description": "x", "price": "10 €", "productURL": "https://ok", "source": "Glotehlo"}]
-        mock_walmart.return_value = []
+        mock_materielnet.return_value = []
         mock_leclerc.return_value = []
         mock_auchan.return_value = []
 
@@ -131,15 +131,15 @@ class TestDoSearch:
     @patch("services.search_service.persist_articles")
     @patch("services.search_service.scrape_auchan")
     @patch("services.search_service.scrape_leclerc")
-    @patch("services.search_service.scrape_walmart")
+    @patch("services.search_service.scrape_materielnet")
     @patch("services.search_service.scrape_glotelho")
     @patch("services.search_service.scrape_amazon")
     def test_records_without_description_are_dropped(
-        self, mock_amazon, mock_glotelho, mock_walmart, mock_leclerc, mock_auchan, mock_persist
+        self, mock_amazon, mock_glotelho, mock_materielnet, mock_leclerc, mock_auchan, mock_persist
     ):
         mock_amazon.return_value = [{"description": "", "price": "10 €", "productURL": "https://x"}]
         mock_glotelho.return_value = []
-        mock_walmart.return_value = []
+        mock_materielnet.return_value = []
         mock_leclerc.return_value = []
         mock_auchan.return_value = []
 

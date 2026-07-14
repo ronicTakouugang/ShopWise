@@ -19,17 +19,19 @@ from repositories import (
 from scrapers.auchan_scraper import scrape_auchan
 from scrapers.glotehlo_scraper import scrape_glotelho
 from scrapers.leclerc_scraper import scrape_leclerc
+from scrapers.materielnet_scraper import scrape_materielnet
 from utils import extract_price, format_price
 
 # Sources pour lesquelles on relance un vrai scraping lors du price-check automatique.
-# Amazon/Walmart en sont exclus : ce sont des sites déjà sujets au rate-limit (cf. timeouts
-# de scraping), et relancer une recherche complète par produit abonné toutes les 2h y
-# ajouterait trop de volume. Pour ces deux sources, on se contente du dernier prix connu
+# Amazon en est exclu : c'est un site déjà sujet au rate-limit (cf. timeouts de
+# scraping), et relancer une recherche complète par produit abonné toutes les 2h y
+# ajouterait trop de volume. Pour cette source, on se contente du dernier prix connu
 # (mis à jour uniquement quand l'utilisateur relance une recherche manuelle).
 _LIVE_RECHECK_SCRAPERS = {
     "Glotehlo": scrape_glotelho,
     "E.Leclerc": scrape_leclerc,
     "Auchan": scrape_auchan,
+    "Materiel.net": scrape_materielnet,
 }
 
 # Délai global pour récupérer le prix actuel de tous les abonnements, en parallèle.
@@ -57,10 +59,10 @@ def parse_threshold_percent(raw_threshold) -> float | None:
 def get_current_price(product_url: str) -> float:
     """
     Récupère le prix actuel d'un produit abonné.
-    - Glotelho/Leclerc/Auchan : relance une recherche par mot-clé (le nom du produit) et
-      retrouve la ligne correspondant à productURL pour en extraire le prix réel.
-    - Amazon/Walmart/autre : retourne le dernier prix connu (articles.last_price), sans
-      relancer de scraping automatique.
+    - Glotelho/Leclerc/Auchan/Materiel.net : relance une recherche par mot-clé (le nom du
+      produit) et retrouve la ligne correspondant à productURL pour en extraire le prix réel.
+    - Amazon/autre : retourne le dernier prix connu (articles.last_price), sans relancer
+      de scraping automatique.
     - Si le produit n'est pas retrouvé (ex: disparu du site), retourne aussi last_price
       pour ne pas déclencher de fausse alerte de baisse.
     """
