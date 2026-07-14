@@ -20,11 +20,22 @@ _SORT_CLAUSES = {
 
 
 def get_favorites_by_email(email: str, sort_by: str = "date_added") -> list:
-    """Retourne les favoris d'un utilisateur, triés selon sort_by."""
+    """
+    Retourne les favoris d'un utilisateur, triés selon sort_by.
+    Colonnes camelCase explicitement aliasées : Postgres met en minuscules les
+    identifiants non guillemetés (imageURL -> imageurl) alors que SQLite préserve
+    la casse - sans alias, le JSON renvoyé en prod (imageurl, producturl,
+    sourcelogo, reviewcount) ne correspond plus aux clés attendues côté client
+    (imageURL, productURL, sourceLogo, reviewCount), cassant l'affichage des
+    images/liens sur la page favoris.
+    """
     order_clause = _SORT_CLAUSES.get(sort_by, _SORT_CLAUSES["date_added"])
     with get_connection() as connection:
         cursor = connection.execute(
-            f"SELECT * FROM favorites WHERE email = ? {order_clause}",
+            'SELECT id, email, description, price, imageURL AS "imageURL", '
+            'productURL AS "productURL", source, sourceLogo AS "sourceLogo", '
+            'rating, reviewCount AS "reviewCount" '
+            f"FROM favorites WHERE email = ? {order_clause}",
             (email,)
         )
         return [dict(row) for row in cursor.fetchall()]
@@ -84,10 +95,16 @@ def delete_favorite(email: str, product_url: str) -> None:
 
 
 def get_favorite_urls_by_email(email: str) -> set:
-    """Retourne l'ensemble des productURL en favoris pour cet email."""
+    """
+    Retourne l'ensemble des productURL en favoris pour cet email.
+    Alias explicite requis : row["productURL"] échouerait silencieusement (KeyError
+    avalé par l'appelant, search_service.mark_favorites) sur Postgres, où la colonne
+    non guillemetée est renvoyée en minuscules (producturl) - avec pour effet que
+    isFavorite ne serait jamais marqué à true dans les résultats de recherche.
+    """
     with get_connection() as connection:
         cursor = connection.execute(
-            "SELECT productURL FROM favorites WHERE email = ?",
+            'SELECT productURL AS "productURL" FROM favorites WHERE email = ?',
             (email,)
         )
         return {row["productURL"] for row in cursor.fetchall()}
