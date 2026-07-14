@@ -5,6 +5,10 @@
   --color-bg: #f5f5f5;
   --color-card-bg: #ffffff;
   --color-border: #e9ecef;
+  // Fond des états de survol légers (menus, lignes de liste, boutons discrets) :
+  // gris clair en light, légèrement plus clair que --color-card-bg en dark, pour
+  // rester visible sans redevenir un carré blanc incohérent sur fond sombre.
+  --color-hover-bg: #f3f4f6;
 
   --font-size-h1: 2.5rem;
   --font-size-h2: 1.75rem;
@@ -22,4 +26,5 @@
   --color-bg: #18181b;
   --color-card-bg: #27272a;
   --color-border: #3f3f46;
+  --color-hover-bg: #323238;
 }

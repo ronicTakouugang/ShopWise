@@ -7,7 +7,11 @@
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--color-heading);
+  // Fixe (pas var(--color-heading), qui devient presque blanc en dark mode) :
+  // cette pastille est conçue pour rester une bulle sombre à texte blanc quel
+  // que soit le thème, comme le toast (voir app.component.scss). Avec
+  // --color-heading, elle devenait blanc sur blanc et disparaissait en dark mode.
+  background: #111827;
   color: white;
   padding: 1rem 2rem;
   border-radius: 24px;
@@ -49,7 +53,7 @@
 
     .clear-btn {
       background: transparent;
-      color: #9ca3af;
+      color: var(--color-muted);
       border: none;
       font-weight: 600;
       cursor: pointer;
@@ -104,7 +108,7 @@
       margin-bottom: 2.5rem;
       h3 { margin: 0; font-size: 2rem; font-weight: 800; }
       .close-panel {
-        background: #f3f4f6;
+        background: var(--color-hover-bg);
         border: none;
         width: 40px;
         height: 40px;
@@ -116,7 +120,7 @@
         font-size: 1.2rem;
         color: var(--color-muted);
         transition: all 0.2s;
-        &:hover { background: #e5e7eb; color: var(--color-heading); transform: rotate(90deg); }
+        &:hover { background: var(--color-border); color: var(--color-heading); transform: rotate(90deg); }
       }
     }
 
@@ -131,9 +135,9 @@
         align-items: center;
         text-align: center;
         padding: 2rem;
-        background: #f9fafb;
+        background: var(--color-hover-bg);
         border-radius: 24px;
-        border: 1px solid #f3f4f6;
+        border: 1px solid var(--color-border);
 
         .img-container {
           width: 150px;

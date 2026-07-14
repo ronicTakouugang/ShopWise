@@ -8,7 +8,7 @@
   flex-direction: column;
   transition: all 0.2s ease;
   cursor: pointer;
-  border: 1px solid #f3f4f6;
+  border: 1px solid var(--color-border);
   margin: 15px;
   position: relative;
 
@@ -29,7 +29,7 @@
 
   .card-image-section {
     height: 180px;
-    background-color: #f8f9fa;
+    background-color: var(--color-hover-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -84,7 +84,7 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       z-index: 5;
-      color: #9ca3af;
+      color: var(--color-muted);
       backdrop-filter: blur(4px);
 
       i {
@@ -124,7 +124,7 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       transition: all 0.2s ease;
       z-index: 5;
-      color: #9ca3af;
+      color: var(--color-muted);
       backdrop-filter: blur(4px);
 
       &:hover {
@@ -150,7 +150,7 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
       transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       z-index: 5;
-      color: #9ca3af;
+      color: var(--color-muted);
       backdrop-filter: blur(4px);
 
       i {
@@ -203,7 +203,7 @@
         align-items: center;
         margin-bottom: 8px;
         h4 { margin: 0; font-size: 0.9rem; color: var(--color-primary); }
-        button { border: none; background: none; cursor: pointer; color: #9ca3af; }
+        button { border: none; background: none; cursor: pointer; color: var(--color-muted); }
       }
 
       .history-list {
@@ -213,12 +213,12 @@
           display: flex;
           justify-content: space-between;
           padding: 4px 0;
-          border-bottom: 1px solid #f3f4f6;
+          border-bottom: 1px solid var(--color-border);
           .history-date { color: var(--color-muted); }
           .history-price { font-weight: 600; color: var(--color-heading); }
         }
       }
-      .history-empty { color: #9ca3af; text-align: center; padding: 20px; }
+      .history-empty { color: var(--color-muted); text-align: center; padding: 20px; }
     }
 
     .vendor-info {
@@ -271,7 +271,7 @@
 
       .old-price {
         font-size: 0.9rem;
-        color: #9ca3af;
+        color: var(--color-muted);
         text-decoration: line-through;
         font-weight: 500;
       }
@@ -292,7 +292,7 @@
         font-size: 0.75rem;
         color: var(--color-muted);
         background: var(--color-card-bg);
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--color-border);
         border-radius: 6px;
         padding: 2px 4px;
         cursor: pointer;
@@ -309,7 +309,9 @@
         display: flex;
         align-items: center;
         gap: 4px;
-        background: #fffbeb;
+        // Ambre translucide (plutôt qu'un fond pastel fixe) : se fond correctement
+        // dans la carte, que celle-ci soit claire ou sombre.
+        background: rgba(245, 158, 11, 0.12);
         padding: 2px 8px;
         border-radius: 6px;
 
@@ -321,7 +323,7 @@
         .rating-value {
           font-size: 0.8rem;
           font-weight: 600;
-          color: #92400e;
+          color: #f59e0b;
         }
 
         .review-count {

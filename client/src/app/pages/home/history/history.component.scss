@@ -26,7 +26,7 @@
       padding: 1.5rem 1.25rem 1rem;
       .p-panel-title {
         font-weight: 700;
-        color: #1f2937;
+        color: var(--color-heading);
         font-size: 1.1rem;
         letter-spacing: -0.01em;
       }
@@ -66,7 +66,7 @@
     align-items: center;
     gap: 10px;
     transition: background 0.2s ease, color 0.2s ease;
-    color: #4b5563;
+    color: var(--color-muted);
     font-weight: 500;
     cursor: pointer;
 
@@ -76,8 +76,8 @@
     }
 
     &:hover {
-      background: #f3f4f6;
-      color: #1f2937;
+      background: var(--color-hover-bg);
+      color: var(--color-heading);
 
       .histor--actions {
         opacity: 1;
@@ -88,7 +88,7 @@
     .histor--icon {
       flex: none;
       font-size: 0.85rem;
-      color: #9ca3af;
+      color: var(--color-muted);
     }
 
     .histor--main {
@@ -107,7 +107,7 @@
       .search-time {
         font-size: 0.72rem;
         font-weight: 400;
-        color: #9ca3af;
+        color: var(--color-muted);
       }
     }
 
@@ -129,13 +129,13 @@
         border: none;
         border-radius: 6px;
         background: transparent;
-        color: #9ca3af;
+        color: var(--color-muted);
         cursor: pointer;
         font-size: 0.8rem;
 
         &:hover {
-          background: #e5e7eb;
-          color: #1f2937;
+          background: var(--color-hover-bg);
+          color: var(--color-heading);
         }
       }
 
@@ -154,7 +154,7 @@
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    color: #9ca3af;
+    color: var(--color-muted);
     text-align: center;
     gap: 0.5rem;
 
