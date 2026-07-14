@@ -1,6 +1,8 @@
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:5000',
+  // Vide en dev : pas de bruit d'erreurs locales dans Sentry.
+  sentryDsn: '',
   firebase: {
     apiKey: "AIzaSyAdl0bt5ww9Dxxr-ozi55hV3abvrbEwwKA",
     authDomain: "shopwise-5f5f1.firebaseapp.com",

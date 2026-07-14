@@ -1,5 +1,6 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, ErrorHandler, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import * as Sentry from '@sentry/angular';
 
 import { routes } from './app.routes';
 import {providePrimeNG} from 'primeng/config';
@@ -29,5 +30,9 @@ export const appConfig: ApplicationConfig = {
         }
       }
     }),
-    provideRouter(routes)]
+    provideRouter(routes),
+    // Sans effet tant que Sentry.init() n'a pas été appelé (main.ts, conditionné
+    // par environment.sentryDsn) : captureException est un no-op silencieux avant
+    // init, donc ce provider peut rester actif inconditionnellement.
+    { provide: ErrorHandler, useValue: Sentry.createErrorHandler() }]
 };
