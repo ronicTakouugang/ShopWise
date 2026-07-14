@@ -70,6 +70,11 @@
     font-weight: 500;
     cursor: pointer;
 
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: -2px;
+    }
+
     &:hover {
       background: #f3f4f6;
       color: #1f2937;

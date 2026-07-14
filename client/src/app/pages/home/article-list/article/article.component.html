@@ -1,4 +1,11 @@
-<div class="card--container" (click)="goToUrl()">
+<div
+  class="card--container"
+  role="link"
+  tabindex="0"
+  [attr.aria-label]="'Voir l\'offre pour ' + article.description + ' chez ' + article.source + ' (nouvel onglet)'"
+  (click)="goToUrl()"
+  (keydown.enter)="goToUrl()"
+  (keydown.space)="goToUrl(); $event.preventDefault()">
   <div class="card-image-section">
     <div class="image-wrapper">
       <img [alt]="article.description" [src]="article.imageURL" class="product-image"/>
@@ -9,19 +16,25 @@
     <!-- Visibles pour tout le monde (pas juste *ngIf="authService.isAuth") : sinon les
          visiteurs non connectés ne savent même pas que favoris/alertes existent.
          Le clic reste protégé côté handler (toast + invite à se connecter). -->
-    <button class="favorite-btn" [class.active]="isFavorite" (click)="toggleFavorite($event)">
-      <i class="pi" [ngClass]="isFavorite ? 'pi-heart-fill' : 'pi-heart'"></i>
+    <button
+      type="button"
+      class="favorite-btn"
+      [class.active]="isFavorite"
+      [attr.aria-label]="isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+      (click)="toggleFavorite($event)">
+      <i class="pi" [ngClass]="isFavorite ? 'pi-heart-fill' : 'pi-heart'" aria-hidden="true"></i>
     </button>
     <button
+      type="button"
       class="alert-btn"
       [class.active]="isSubscribed"
       [attr.aria-label]="isSubscribed ? 'Désactiver l\'alerte de prix' : 'Activer une alerte de prix'"
       [title]="isSubscribed ? 'Alerte de prix activée' : 'Recevoir une alerte si le prix baisse'"
       (click)="toggleSubscription($event)">
-      <i class="pi" [ngClass]="isSubscribed ? 'pi-bell' : 'pi-bell-slash'"></i>
+      <i class="pi" [ngClass]="isSubscribed ? 'pi-bell' : 'pi-bell-slash'" aria-hidden="true"></i>
     </button>
-    <button class="history-btn" (click)="toggleHistory($event)" title="Historique des prix">
-      <i class="pi pi-chart-line"></i>
+    <button type="button" class="history-btn" (click)="toggleHistory($event)" aria-label="Historique des prix" title="Historique des prix">
+      <i class="pi pi-chart-line" aria-hidden="true"></i>
     </button>
   </div>
 
@@ -29,7 +42,7 @@
     <div class="price-history-overlay" *ngIf="showHistory" (click)="$event.stopPropagation()">
       <div class="history-header">
         <h4>Evolution du prix</h4>
-        <button (click)="showHistory = false"><i class="pi pi-times"></i></button>
+        <button type="button" (click)="showHistory = false" aria-label="Fermer l'historique des prix"><i class="pi pi-times" aria-hidden="true"></i></button>
       </div>
       <div class="history-chart" *ngIf="priceHistory.length > 1">
         <p-chart type="line" [data]="chartData" [options]="chartOptions" [style]="{height: '160px'}"></p-chart>
@@ -59,8 +72,8 @@
     </div>
 
     <div class="alert-threshold" *ngIf="isSubscribed" (click)="$event.stopPropagation()">
-      <i class="pi pi-bell"></i>
-      <select [ngModel]="thresholdPercent ?? 0" (ngModelChange)="onThresholdChange($event)" title="Seuil de baisse pour déclencher l'alerte">
+      <i class="pi pi-bell" aria-hidden="true"></i>
+      <select [ngModel]="thresholdPercent ?? 0" (ngModelChange)="onThresholdChange($event)" aria-label="Seuil de baisse pour déclencher l'alerte" title="Seuil de baisse pour déclencher l'alerte">
         <option [ngValue]="0">Toute baisse</option>
         <option [ngValue]="5">-5% ou plus</option>
         <option [ngValue]="10">-10% ou plus</option>

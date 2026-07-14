@@ -7,8 +7,15 @@
     }
     <div class="history-list">
       @for (histor of historyService.history; track histor.id){
-        <div class="histor--elem" (click)="articleService.search(histor.search)">
-          <i class="pi pi-clock histor--icon"></i>
+        <div
+          class="histor--elem"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="'Relancer la recherche : ' + histor.search"
+          (click)="articleService.search(histor.search)"
+          (keydown.enter)="articleService.search(histor.search)"
+          (keydown.space)="articleService.search(histor.search); $event.preventDefault()">
+          <i class="pi pi-clock histor--icon" aria-hidden="true"></i>
           <div class="histor--main">
             <span class="search-text">{{histor.search}}</span>
             <span class="search-time">{{ relativeTime(histor.id) }}</span>
@@ -20,13 +27,13 @@
               aria-label="Supprimer cette recherche"
               title="Supprimer"
               (click)="remove(histor); $event.stopPropagation()">
-              <i class="pi pi-times"></i>
+              <i class="pi pi-times" aria-hidden="true"></i>
             </button>
           </div>
         </div>
       } @empty {
         <div class="empty-history">
-          <i class="pi pi-history"></i>
+          <i class="pi pi-history" aria-hidden="true"></i>
           <p>Vos recherches récentes apparaîtront ici</p>
         </div>
       }

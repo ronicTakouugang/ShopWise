@@ -23,3 +23,18 @@ body {
   margin: 10px;
   display: flex;
 }
+
+// Visible pour les lecteurs d'écran uniquement (ex: labels associés à un input
+// dont le placeholder ne suffit pas comme nom accessible). Pattern standard,
+// préférable à display:none (qui retirerait l'élément de l'arbre d'accessibilité).
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -36,6 +36,10 @@ describe('HomeComponent', () => {
   });
 
   afterEach(() => {
+    // app-search (rendu deux fois dans le template : hero + résultats) recharge les
+    // recherches populaires pour l'autocomplétion à chaque (re)création de l'instance,
+    // donc à chaque bascule hero/résultats. Purge les requêtes en attente avant verify().
+    httpMock.match(`${environment.apiUrl}/analytics/summary`).forEach(req => req.flush({ top_searches: [] }));
     httpMock.verify();
   });
 

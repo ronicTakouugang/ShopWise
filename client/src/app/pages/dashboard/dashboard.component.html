@@ -26,17 +26,17 @@
   <ng-container *ngIf="!loading && !loadError && summary">
     <div class="stats-row">
       <div class="stat-card">
-        <i class="pi pi-bell stat-icon"></i>
+        <i class="pi pi-bell stat-icon" aria-hidden="true"></i>
         <span class="stat-value">{{summary.recent_price_drops}}</span>
         <span class="stat-label">Baisses de prix (7 derniers jours)</span>
       </div>
       <div class="stat-card">
-        <i class="pi pi-tag stat-icon"></i>
+        <i class="pi pi-tag stat-icon" aria-hidden="true"></i>
         <span class="stat-value">{{summary.tracked_subscriptions}}</span>
         <span class="stat-label">Produits sous alerte</span>
       </div>
       <div class="stat-card">
-        <i class="pi pi-heart stat-icon"></i>
+        <i class="pi pi-heart stat-icon" aria-hidden="true"></i>
         <span class="stat-value">{{summary.tracked_favorites}}</span>
         <span class="stat-label">Produits en favoris</span>
       </div>

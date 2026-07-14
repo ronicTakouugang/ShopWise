@@ -1,5 +1,11 @@
 .search-bar {
   position: relative;
+  // Contexte d'empilement explicite et permanent (pas seulement via le
+  // transform de :focus-within, qui n'existe que quand le champ a le focus) :
+  // sinon la liste de suggestions (z-index:20 à l'intérieur) peut se retrouver
+  // sous des frères plus tardifs dans le DOM (ex: .popular-tags) qui héritent
+  // eux aussi de "position:relative" via le reset global de styles.scss.
+  z-index: 5;
   display: flex;
   align-items: center;
   background-color: var(--color-card-bg);
@@ -84,6 +90,45 @@
 
   &:active:not(:disabled) {
     transform: scale(0.95);
+  }
+}
+
+.suggestions-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--color-card-bg);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  z-index: 20;
+  max-height: 280px;
+  overflow-y: auto;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #374151;
+    font-size: 0.9rem;
+
+    i {
+      color: #9a9aa0;
+      font-size: 0.85rem;
+    }
+
+    &:hover,
+    &.active {
+      background: #f3f4f6;
+      color: #1a1a1a;
+    }
   }
 }
 

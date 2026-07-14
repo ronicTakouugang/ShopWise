@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {Article} from './article';
-import {catchError, Subject, tap, throwError, timeout} from 'rxjs';
+import {catchError, map, of, Subject, tap, throwError, timeout} from 'rxjs';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 import {HistoryService} from '../../history/services/history.service';
@@ -51,6 +51,18 @@ export class ArticleService {
         console.error("err",err)
         return throwError(err);
       })
+    );
+  }
+
+  /**
+   * Recherches les plus fréquentes tous utilisateurs confondus (utilisé pour
+   * l'autocomplétion). Echoue silencieusement (liste vide) : les suggestions
+   * ne sont qu'un confort, pas une fonctionnalité critique.
+   */
+  getTopSearches() {
+    return this.http.get<{ top_searches: { query: string; count: number }[] }>(`${this.apiUrl}/analytics/summary`).pipe(
+      map(summary => (summary.top_searches || []).map(s => s.query)),
+      catchError(() => of([] as string[]))
     );
   }
 

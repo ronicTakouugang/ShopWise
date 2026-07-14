@@ -58,6 +58,11 @@
     color: var(--color-heading);
     transform: rotate(90deg);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .auth-body {
@@ -163,6 +168,12 @@
 }
 
 .auth-link {
+  // Reset des styles par defaut du navigateur : c'est un <button> (accessible
+  // au clavier), pas un <a> sans href, mais visuellement identique a avant.
+  border: none;
+  background: transparent;
+  font: inherit;
+  padding: 0;
   color: var(--color-primary);
   font-weight: 600;
   cursor: pointer;
@@ -171,5 +182,11 @@
 
   &:hover {
     text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
