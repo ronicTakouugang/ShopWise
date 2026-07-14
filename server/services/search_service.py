@@ -22,12 +22,19 @@ from scrapers.materielnet_scraper import scrape_materielnet
 from utils import extract_price, normalize_text
 
 # Délai maximum accordé à un site pour répondre avant qu'on l'écarte de la recherche.
-# Mesuré en conditions réelles : Amazon/Glotelho/Auchan/Leclerc/Materiel.net terminent
-# tous en moins de 6s. Walmart (anti-bot systématique, 15-19s pour 0 résultat) a été
-# retiré de cette liste et remplacé par Materiel.net (voir git log) plutôt que de
-# retarder chaque recherche pour un site qui ne contribuait de toute façon quasiment
-# jamais de résultats.
-SCRAPER_TIMEOUT_SECONDS = 8
+# Mesuré en local : Amazon/Glotelho/Auchan/Leclerc/Materiel.net terminent tous en
+# moins de 6s, d'où un premier réglage à 8s. MAIS en production (Render free tier :
+# CPU partagé/limité, chemin réseau différent vers ces sites), ce budget s'est révélé
+# trop juste : sur 3 recherches réelles en prod, une source différente "gagnait" à
+# chaque fois (tantôt Leclerc seul, tantôt Glotelho+Materiel.net sans Leclerc) alors
+# qu'aucun site n'est réellement bloqué - juste plus lent que prévu, exclu au hasard
+# selon qui finit avant la coupure. Remonté à 20s : le temps total d'une recherche
+# est de toute façon dominé par l'écriture en base Postgres après coup (~6-7s observés
+# en prod), donc large marge sous le timeout de 60s du worker gunicorn (cf.
+# database.py). Walmart (anti-bot systématique, 15-19s pour 0 résultat) a été retiré
+# de cette liste et remplacé par Materiel.net (voir git log) : ce budget plus généreux
+# ne lui profite plus, il va aux sites qui apportent réellement des résultats.
+SCRAPER_TIMEOUT_SECONDS = 20
 
 # Réduit le nombre de requêtes réellement envoyées aux sites pour des recherches
 # identiques/répétées (moins de volume = moins de risque de blocage), sans jamais
