@@ -59,6 +59,7 @@ export class ArticleComponent {
   toggleFavorite(event: Event) {
     event.stopPropagation();
     if (!this.authService.isAuth) {
+      this.toastService.showWarnCustom('Connectez-vous pour ajouter ce produit à vos favoris.', 'Connexion requise');
       return;
     }
 

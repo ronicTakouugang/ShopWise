@@ -6,7 +6,10 @@
     <div class="promo-badge" *ngIf="article.oldPrice">
       OFFRE
     </div>
-    <button class="favorite-btn" [class.active]="isFavorite" (click)="toggleFavorite($event)" *ngIf="authService.isAuth">
+    <!-- Visibles pour tout le monde (pas juste *ngIf="authService.isAuth") : sinon les
+         visiteurs non connectés ne savent même pas que favoris/alertes existent.
+         Le clic reste protégé côté handler (toast + invite à se connecter). -->
+    <button class="favorite-btn" [class.active]="isFavorite" (click)="toggleFavorite($event)">
       <i class="pi" [ngClass]="isFavorite ? 'pi-heart-fill' : 'pi-heart'"></i>
     </button>
     <button
@@ -14,8 +17,7 @@
       [class.active]="isSubscribed"
       [attr.aria-label]="isSubscribed ? 'Désactiver l\'alerte de prix' : 'Activer une alerte de prix'"
       [title]="isSubscribed ? 'Alerte de prix activée' : 'Recevoir une alerte si le prix baisse'"
-      (click)="toggleSubscription($event)"
-      *ngIf="authService.isAuth">
+      (click)="toggleSubscription($event)">
       <i class="pi" [ngClass]="isSubscribed ? 'pi-bell' : 'pi-bell-slash'"></i>
     </button>
     <div class="price-drop-badge" *ngIf="article.oldPrice && isFavorite">
