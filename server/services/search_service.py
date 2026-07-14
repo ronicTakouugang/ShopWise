@@ -22,7 +22,12 @@ from scrapers.walmart_scraper import scrape_walmart
 from utils import extract_price, normalize_text
 
 # Délai maximum accordé à un site pour répondre avant qu'on l'écarte de la recherche.
-SCRAPER_TIMEOUT_SECONDS = 15
+# Mesuré en conditions réelles : Amazon/Glotelho/Auchan/Leclerc terminent tous en
+# moins de 6s ; seul Walmart (anti-bot systématique) dépassait largement ce délai
+# pour 0 résultat, ce qui plombait la durée de TOUTE recherche à ~15-19s. Abaissé
+# à 8s (marge au-dessus des ~6s mesurés) plutôt que de retarder chaque recherche
+# pour un site qui ne contribue de toute façon quasiment jamais de résultats.
+SCRAPER_TIMEOUT_SECONDS = 8
 
 # Réduit le nombre de requêtes réellement envoyées aux sites pour des recherches
 # identiques/répétées (moins de volume = moins de risque de blocage), sans jamais

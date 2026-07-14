@@ -141,10 +141,14 @@ def fetch_page(search_term, page):
     url = get_url(search_term, page)
     logging.info(f"🌐 Récupération de la page {page}: {url}")
     
-    response = robust_request(url)
+    # max_retries=1 : Walmart bloque quasi-systématiquement (page de vérification
+    # anti-bot), les tentatives suivantes n'aboutissent jamais en pratique (voir
+    # measures : 3 tentatives = 15-19s pour 0 résultat) et ne font que retarder
+    # toute la recherche, les autres sites étant eux beaucoup plus rapides.
+    response = robust_request(url, max_retries=1)
     if response and response.status_code == 200:
         return page, BeautifulSoup(response.content, "html.parser")
-    
+
     return page, None
 
 def scrape_walmart(search_term):
