@@ -20,9 +20,6 @@
       (click)="toggleSubscription($event)">
       <i class="pi" [ngClass]="isSubscribed ? 'pi-bell' : 'pi-bell-slash'"></i>
     </button>
-    <div class="price-drop-badge" *ngIf="article.oldPrice && isFavorite">
-      BAISSE !
-    </div>
     <button class="history-btn" (click)="toggleHistory($event)" title="Historique des prix">
       <i class="pi pi-chart-line"></i>
     </button>
