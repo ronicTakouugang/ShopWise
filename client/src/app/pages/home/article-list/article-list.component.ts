@@ -81,6 +81,22 @@ export class ArticleListComponent implements OnInit{
     return ascending ? priceA - priceB : priceB - priceA;
   }
 
+  // Toutes les sources ne fournissent pas de note (ex: Leclerc/Auchan/Materiel.net ne
+  // l'exposent pas sur leurs pages de résultats) : un article sans note connue est
+  // toujours relégué en fin de tri plutôt que traité comme "0 étoile".
+  private compareRatingsWithUnknownsLast(a: Article, b: Article): number {
+    const ratingA = parseFloat(a.rating ?? '');
+    const ratingB = parseFloat(b.rating ?? '');
+    const aIsUnknown = a.rating === 'No Rating' || isNaN(ratingA);
+    const bIsUnknown = b.rating === 'No Rating' || isNaN(ratingB);
+
+    if (aIsUnknown && !bIsUnknown) return 1;
+    if (!aIsUnknown && bIsUnknown) return -1;
+    if (aIsUnknown && bIsUnknown) return 0;
+
+    return ratingB - ratingA;
+  }
+
   applyFiltersAndSort(): void {
     let result = [...this.allArticles];
 
@@ -106,6 +122,8 @@ export class ArticleListComponent implements OnInit{
       result.sort((a, b) => this.comparePricesWithUnknownsLast(a, b, true));
     } else if (this.sortBy === 'price_desc') {
       result.sort((a, b) => this.comparePricesWithUnknownsLast(a, b, false));
+    } else if (this.sortBy === 'rating_desc') {
+      result.sort((a, b) => this.compareRatingsWithUnknownsLast(a, b));
     } else if (this.sortBy === 'relevance') {
       result.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
     }

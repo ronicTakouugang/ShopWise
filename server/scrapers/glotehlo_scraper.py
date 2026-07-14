@@ -59,6 +59,11 @@ def parse_hits(hits, seen):
             # Popularité (vue sur certains documents d'API)
             popularity = doc.get("popularity", 0) or doc.get("views_count", 0)
 
+            # rating_summary : pourcentage 0-100 (convention Magento, 100 = 5 étoiles),
+            # présent sur une minorité de produits seulement (0 = pas encore d'avis).
+            rating_summary = doc.get("rating_summary") or 0
+            rating = f"{rating_summary / 20:.1f}" if rating_summary else "No Rating"
+
             price = convert_to_euro(price_raw) if price_raw != "N/A" else "N/A"
             old_price = convert_to_euro(old_price_raw) if old_price_raw != "N/A" else "N/A"
 
@@ -77,6 +82,7 @@ def parse_hits(hits, seen):
                     "price": price,
                     "oldPrice": old_price,
                     "popularity": popularity,
+                    "rating": rating,
                     "productURL": product_url,
                     "imageURL": image_url,
                     "sourceLogo": "https://glotelho.cm/media/favicon/default/favicon-glotelho.png",
