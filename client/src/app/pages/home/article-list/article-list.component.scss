@@ -252,6 +252,13 @@
   margin-top: 40px;
   padding: 24px;
 
+  // La barre flottante de comparaison (position:fixed, ancrée en bas de l'écran)
+  // recouvre sinon complètement les boutons Précédent/Suivant quand elle est visible :
+  // on réserve l'espace qu'elle occupe pour que la pagination reste au-dessus.
+  &.with-compare-bar {
+    margin-bottom: 140px;
+  }
+
   button {
     padding: 10px 24px;
     border-radius: 50px;
@@ -306,6 +313,12 @@
 
     button {
       padding: 8px 14px;
+    }
+
+    // La barre de comparaison passe en layout colonne sur mobile (voir
+    // compare-bar.component.scss) : plus haute, il faut plus d'espace réservé.
+    &.with-compare-bar {
+      margin-bottom: 190px;
     }
   }
 }

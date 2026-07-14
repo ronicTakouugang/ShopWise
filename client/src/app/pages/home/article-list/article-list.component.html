@@ -89,7 +89,7 @@
   </ng-container>
 </div>
 
-<div class="pagination" *ngIf="totalPages > 1">
+<div class="pagination" [class.with-compare-bar]="compareService.compareList.length >= 2" *ngIf="totalPages > 1">
   <button (click)="prevPage()" [disabled]="currentPage === 1">Précédent</button>
   <span>Page {{currentPage}} sur {{totalPages}}</span>
   <button (click)="nextPage()" [disabled]="currentPage === totalPages">Suivant</button>
