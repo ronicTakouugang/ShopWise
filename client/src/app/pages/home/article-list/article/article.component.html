@@ -8,7 +8,7 @@
   (keydown.space)="goToUrl(); $event.preventDefault()">
   <div class="card-image-section">
     <div class="image-wrapper">
-      <img [alt]="article.description" [src]="article.imageURL" class="product-image"/>
+      <img [alt]="article.description" [src]="article.imageURL" class="product-image" loading="lazy" decoding="async"/>
     </div>
     <div class="promo-badge" *ngIf="article.oldPrice">
       OFFRE
@@ -58,7 +58,7 @@
       </div>
     </div>
     <div class="vendor-info">
-      <img [src]="article.sourceLogo" [alt]="article.source" class="vendor-logo" *ngIf="article.sourceLogo" (error)="article.sourceLogo = ''">
+      <img [src]="article.sourceLogo" [alt]="article.source" class="vendor-logo" *ngIf="article.sourceLogo" (error)="article.sourceLogo = ''" loading="lazy" decoding="async">
       <span class="vendor-name">{{article.source}}</span>
     </div>
 

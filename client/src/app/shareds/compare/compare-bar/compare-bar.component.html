@@ -20,7 +20,7 @@
     <div class="comparison-grid">
       <div class="comparison-column" *ngFor="let item of compareService.compareList">
         <div class="img-container">
-          <img [src]="item.imageURL" [alt]="item.description">
+          <img [src]="item.imageURL" [alt]="item.description" loading="lazy" decoding="async">
         </div>
         <p class="title">{{item.description}}</p>
         <p class="price">{{item.price}}</p>
