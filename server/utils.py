@@ -49,13 +49,16 @@ def robust_request(url, method="GET", impersonate="chrome120", timeout=30, max_r
     try:
         for attempt in range(max_retries):
             try:
-                # Délai aléatoire plus long pour simuler l'humain
+                # Délais réduits (mesuré : en production, un simple retry avec l'ancien
+                # backoff de 5-10s suffisait à faire grimper une recherche entière de ~6s
+                # à ~15s, cf. l'incident Walmart). Toujours un délai, pour rester discret,
+                # mais qui ne plombe plus la recherche complète pour un seul site lent.
                 if attempt > 0:
-                    wait_time = random.uniform(5, 10)
+                    wait_time = random.uniform(2, 4)
                     logging.info(f"⏳ Attente de {wait_time:.2f}s avant tentative {attempt+1}...")
                     time.sleep(wait_time)
                 else:
-                    time.sleep(random.uniform(1, 3))
+                    time.sleep(random.uniform(0.3, 1))
 
                 response = session.request(
                     method=method,
