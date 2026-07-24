@@ -1,5 +1,6 @@
 """Accès à la table `articles` (catalogue des produits déjà vus lors d'une recherche)."""
 from database import get_connection
+from services import product_matching_service
 
 # Aucun produit de ce catalogue ne vaut légitimement plus que ça : filet de
 # sécurité contre un bug de parsing de prix dans un scraper (cf. bug historique
@@ -16,21 +17,32 @@ def upsert_article(product_url: str, description: str, image_url: str, source: s
     """
     with get_connection() as connection:
         existing = connection.execute(
-            "SELECT 1 FROM articles WHERE productURL = ?", (product_url,)
+            "SELECT product_group_id FROM articles WHERE productURL = ?", (product_url,)
         ).fetchone()
+        group_id = existing["product_group_id"] if existing else None
+        # Rattachement paresseux, une seule fois : un produit déjà rattaché à un groupe
+        # ne doit jamais en changer à chaque rafraîchissement de prix, sous peine de
+        # casser la cohérence du comparatif inter-enseigne (voir product_groups_repository).
+        if group_id is None:
+            group_id = product_matching_service.resolve_product_group(description)
+
         if existing:
             connection.execute("""
                 UPDATE articles
                 SET description = ?, imageURL = ?, source = ?, sourceLogo = ?,
-                    rating = ?, reviewCount = ?, last_price = ?, last_seen_at = CURRENT_TIMESTAMP
+                    rating = ?, reviewCount = ?, last_price = ?, last_seen_at = CURRENT_TIMESTAMP,
+                    product_group_id = ?
                 WHERE productURL = ?
-            """, (description, image_url, source, source_logo, rating, review_count, last_price, product_url))
+            """, (description, image_url, source, source_logo, rating, review_count, last_price,
+                  group_id, product_url))
         else:
             connection.execute("""
                 INSERT INTO articles
-                (productURL, description, imageURL, source, sourceLogo, rating, reviewCount, last_price, last_seen_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (product_url, description, image_url, source, source_logo, rating, review_count, last_price))
+                (productURL, description, imageURL, source, sourceLogo, rating, reviewCount,
+                 last_price, last_seen_at, product_group_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+            """, (product_url, description, image_url, source, source_logo, rating, review_count,
+                  last_price, group_id))
         connection.commit()
 
 

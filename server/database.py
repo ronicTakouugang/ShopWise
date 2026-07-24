@@ -121,6 +121,24 @@ def _ensure_threshold_percent_column(connection) -> None:
         connection.execute("ALTER TABLE subscriptions ADD COLUMN threshold_percent REAL")
 
 
+def _ensure_product_group_id_column(connection) -> None:
+    """
+    Ajoute la colonne articles.product_group_id si elle n'existe pas déjà (une base
+    créée avant le rapprochement produit inter-enseigne peut en être dépourvue).
+    """
+    if IS_POSTGRES:
+        cursor = connection.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'articles'"
+        )
+        existing_columns = {row["column_name"] for row in cursor.fetchall()}
+    else:
+        cursor = connection.execute("PRAGMA table_info(articles)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+
+    if "product_group_id" not in existing_columns:
+        connection.execute("ALTER TABLE articles ADD COLUMN product_group_id INTEGER")
+
+
 def initialize_database() -> None:
     """Crée toutes les tables de l'application si elles n'existent pas déjà."""
     # SERIAL (Postgres) et INTEGER PRIMARY KEY AUTOINCREMENT (SQLite) sont les deux
@@ -195,6 +213,25 @@ def initialize_database() -> None:
                     is_read INTEGER DEFAULT 0
                 )
             """)
+            connection.execute(f"""
+                CREATE TABLE IF NOT EXISTS product_groups (
+                    {id_pk},
+                    canonical_title TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            # Une ligne par mot significatif de la description d'origine (voir
+            # services/product_matching_service.py) : sert de "blocking" pour le
+            # rapprochement (candidats = groupes partageant au moins un mot), plutôt
+            # que de comparer une nouvelle description à tous les groupes connus.
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS product_group_words (
+                    group_id INTEGER,
+                    word TEXT,
+                    FOREIGN KEY(group_id) REFERENCES product_groups(id) ON DELETE CASCADE,
+                    PRIMARY KEY(group_id, word)
+                )
+            """)
             connection.execute("""
                 CREATE TABLE IF NOT EXISTS articles (
                     productURL TEXT PRIMARY KEY,
@@ -208,6 +245,10 @@ def initialize_database() -> None:
                     last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            # product_group_id : rapprochement heuristique inter-enseigne (voir
+            # services/product_matching_service.py), ajouté après coup -> colonne
+            # optionnelle plutôt que dans le CREATE TABLE ci-dessus.
+            _ensure_product_group_id_column(connection)
             connection.execute(f"""
                 CREATE TABLE IF NOT EXISTS search_log (
                     {id_pk},

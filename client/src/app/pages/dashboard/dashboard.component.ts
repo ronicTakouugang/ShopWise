@@ -5,12 +5,22 @@ import { RouterLink } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
 import { environment } from '../../../environments/environment';
 
+interface CrossRetailerDeal {
+  canonical_title: string;
+  cheapest_source: string;
+  cheapest_price: number;
+  priciest_source: string;
+  priciest_price: number;
+  savings: number;
+}
+
 interface AnalyticsSummary {
   top_searches: { query: string; count: number }[];
   source_stats: { source: string; product_count: number; avg_price: number; min_price: number; max_price: number }[];
   recent_price_drops: number;
   tracked_subscriptions: number;
   tracked_favorites: number;
+  cross_retailer_deals: CrossRetailerDeal[];
 }
 
 @Component({

@@ -141,6 +141,77 @@
       }
     }
   }
+
+  .deals-row {
+    margin-top: 1.5rem;
+
+    .deals-card {
+      background: var(--color-card-bg);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+      h3 {
+        color: var(--color-heading);
+        margin-bottom: 1.25rem;
+        font-size: 1.15rem;
+      }
+
+      .chart-empty {
+        color: var(--color-muted);
+        text-align: center;
+        padding: 2rem 0;
+      }
+    }
+
+    .deals-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .deal-item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      background: var(--color-bg);
+
+      .deal-title {
+        font-weight: 600;
+        color: var(--color-heading);
+        flex: 1 1 220px;
+      }
+
+      .deal-prices {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--color-muted);
+        font-size: 0.9rem;
+      }
+
+      .deal-cheap {
+        color: #22c55e;
+        font-weight: 600;
+      }
+
+      .deal-pricey {
+        text-decoration: line-through;
+      }
+
+      .deal-savings {
+        font-weight: 700;
+        color: var(--color-primary);
+      }
+    }
+  }
 }
 
 @media (max-width: 768px) {

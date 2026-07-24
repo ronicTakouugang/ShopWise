@@ -8,6 +8,7 @@ from repositories import (
     favorites_repository,
     notifications_repository,
     price_history_repository,
+    product_groups_repository,
     search_log_repository,
     subscriptions_repository,
 )
@@ -33,9 +34,10 @@ def get_price_history():
 def get_analytics_summary():
     """
     Statistiques globales : recherches les plus fréquentes, comparatif agrégé par source
-    (prix moyen/min/max), baisses de prix récentes et nombre de produits suivis.
-    Ce n'est PAS un comparatif produit-à-produit entre retailers (les résultats de sources
-    différentes ne sont pas mis en correspondance par SKU/EAN), juste des stats par source.
+    (prix moyen/min/max), baisses de prix récentes, nombre de produits suivis, et les
+    meilleures économies inter-enseignes (cross_retailer_deals). Ce dernier repose sur un
+    rapprochement heuristique par similarité textuelle (pas de SKU/EAN officiel, voir
+    services/product_matching_service.py) : best-effort, pas un identifiant produit garanti.
     """
     try:
         return jsonify({
@@ -44,6 +46,7 @@ def get_analytics_summary():
             "recent_price_drops": notifications_repository.count_recent_notifications(days=7),
             "tracked_subscriptions": subscriptions_repository.count_subscriptions(),
             "tracked_favorites": favorites_repository.count_distinct_favorited_products(),
+            "cross_retailer_deals": product_groups_repository.get_group_price_comparison(),
         })
     except Exception as e:
         logging.error("Erreur lors du calcul des statistiques analytics: %s", e)

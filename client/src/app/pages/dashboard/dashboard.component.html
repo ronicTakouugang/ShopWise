@@ -55,5 +55,23 @@
         <p class="chart-empty" *ngIf="summary.source_stats.length === 0">Pas encore assez de produits suivis.</p>
       </div>
     </div>
+
+    <div class="deals-row">
+      <div class="deals-card">
+        <h3>Meilleures économies entre enseignes</h3>
+        <ul class="deals-list" *ngIf="summary.cross_retailer_deals.length > 0">
+          <li class="deal-item" *ngFor="let deal of summary.cross_retailer_deals">
+            <span class="deal-title">{{deal.canonical_title}}</span>
+            <span class="deal-prices">
+              <span class="deal-cheap">{{deal.cheapest_price | number:'1.2-2'}} € chez {{deal.cheapest_source}}</span>
+              <span class="deal-sep">vs</span>
+              <span class="deal-pricey">{{deal.priciest_price | number:'1.2-2'}} € chez {{deal.priciest_source}}</span>
+            </span>
+            <span class="deal-savings">Économisez {{deal.savings | number:'1.2-2'}} €</span>
+          </li>
+        </ul>
+        <p class="chart-empty" *ngIf="summary.cross_retailer_deals.length === 0">Pas encore assez de rapprochements produits entre enseignes.</p>
+      </div>
+    </div>
   </ng-container>
 </div>
