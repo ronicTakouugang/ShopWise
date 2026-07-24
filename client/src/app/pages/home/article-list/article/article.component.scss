@@ -219,6 +219,35 @@
         }
       }
       .history-empty { color: var(--color-muted); text-align: center; padding: 20px; }
+
+      .alternatives-section {
+        margin-top: 10px;
+        border-top: 1px solid var(--color-border);
+        padding-top: 8px;
+
+        h4 { margin: 0 0 6px; font-size: 0.85rem; color: var(--color-primary); }
+
+        .alternative-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 4px 0;
+          border-bottom: 1px solid var(--color-border);
+
+          .alt-source { color: var(--color-muted); }
+          .alt-price { font-weight: 600; color: var(--color-heading); }
+
+          button {
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+          }
+        }
+      }
     }
 
     .vendor-info {

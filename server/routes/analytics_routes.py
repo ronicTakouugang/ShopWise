@@ -1,4 +1,7 @@
-"""Endpoints /analytics/summary et /price_history : statistiques et historique de prix."""
+"""
+Endpoints /analytics/summary, /price_history (+ variantes groupées) et
+/articles/alternatives : statistiques, historique de prix et rapprochement inter-enseigne.
+"""
 import logging
 
 from flask import Blueprint, jsonify, request
@@ -27,6 +30,38 @@ def get_price_history():
         return jsonify(price_history_repository.get_price_history(product_url))
     except Exception as e:
         logging.error("Erreur lors de la récupération de l'historique: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@analytics_bp.route('/price_history/group', methods=['GET'])
+def get_group_price_history():
+    """
+    Historique de prix agrégé pour tous les articles du même groupe de produits (voir
+    services/product_matching_service.py) que productURL. Équivaut à /price_history si
+    l'article n'est rapproché avec aucun autre.
+    """
+    product_url = request.args.get('productURL')
+    if not product_url:
+        return jsonify({"error": "productURL requis"}), 400
+
+    try:
+        return jsonify(price_history_repository.get_group_price_history(product_url))
+    except Exception as e:
+        logging.error("Erreur lors de la récupération de l'historique groupé: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@analytics_bp.route('/articles/alternatives', methods=['GET'])
+def get_article_alternatives():
+    """Autres enseignes vendant le même produit (rapprochement heuristique) que productURL."""
+    product_url = request.args.get('productURL')
+    if not product_url:
+        return jsonify({"error": "productURL requis"}), 400
+
+    try:
+        return jsonify(articles_repository.get_alternatives(product_url))
+    except Exception as e:
+        logging.error("Erreur lors de la récupération des alternatives: %s", e)
         return jsonify({"error": str(e)}), 500
 
 

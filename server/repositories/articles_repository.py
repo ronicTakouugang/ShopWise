@@ -56,6 +56,29 @@ def get_article_by_url(product_url: str):
         return cursor.fetchone()
 
 
+def get_alternatives(product_url: str) -> list:
+    """
+    Retourne les autres articles du même groupe de produits (rapprochement heuristique,
+    voir services/product_matching_service.py) que product_url, triés par prix croissant.
+    Liste vide si l'article n'est pas encore rattaché à un groupe ou n'a pas d'équivalent
+    connu chez une autre enseigne.
+    """
+    with get_connection() as connection:
+        cursor = connection.execute("""
+            SELECT other.productURL AS "productURL", other.source,
+                   other.sourceLogo AS "sourceLogo", other.imageURL AS "imageURL",
+                   other.description, other.last_price
+            FROM articles this
+            JOIN articles other
+                ON other.product_group_id = this.product_group_id
+                AND other.productURL != this.productURL
+            WHERE this.productURL = ? AND this.product_group_id IS NOT NULL
+                AND other.last_price IS NOT NULL AND other.last_price < ?
+            ORDER BY other.last_price ASC
+        """, (product_url, MAX_PLAUSIBLE_PRICE_EUR))
+        return [dict(row) for row in cursor.fetchall()]
+
+
 def get_price_stats_by_source() -> list:
     """
     Retourne, pour chaque source (Amazon, Glotehlo, ...), le nombre de produits suivis
